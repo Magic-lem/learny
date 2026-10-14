@@ -28,12 +28,14 @@ Learny Demo 使用 DeepSeek Harness 官方 npm `latest` 渠道对应的已发布
 
 ## 2 该版本的集成依据
 
-- [宿主仓库规则](../../deepseek-harness/AGENTS.md)：应用启动通过 dsh profile；新行为使用插件扩展点；模型可见输入必须可由会话日志追踪。
-- [自定义 Remote API](../../deepseek-harness/docs/cookbook/adding-a-remote-api.md)：Host 服务声明接口，生成 `./typert` 与 `./remote` 元数据，Client 需要装配对应贡献。
-- [右侧工作台扩展](../../deepseek-harness/packages/client/ui-sidebar-right/README.md)：Tab 类型注册、内容 slot、导航及普通和全屏呈现。
-- [领域存储](../../deepseek-harness/packages/storage/storage-domain/README.zh.md)：schema 校验的 KV 记录、持久写入及变更事件；无跨表事务、二级索引和自动迁移。
-- [SQLite 后端](../../deepseek-harness/packages/storage/storage-sqlite/README.zh.md)：本地持久化后端与版本要求。
-- [Desktop 运行说明](../../deepseek-harness/apps/desktop/README.md)：Electron 壳承载完整 Web 应用，本地 Host 通过经认证的 HTTP 和 WebSocket 提供能力。
+以下依据都来自上面那个上游仓库；路径是上游仓库内的相对位置，请在你自己的源码克隆里对照（下面的 `dsh-v0.2.0-rc.2` 指向本次基线标签）：
+
+- `AGENTS.md`：宿主仓库规则——应用启动通过 dsh profile；新行为使用插件扩展点；模型可见输入必须可由会话日志追踪。
+- `docs/cookbook/adding-a-remote-api.md`：自定义 Remote API——Host 服务声明接口，生成 `./typert` 与 `./remote` 元数据，Client 需要装配对应贡献。
+- `packages/client/ui-sidebar-right/README.md`：右侧工作台扩展——Tab 类型注册、内容 slot、导航及普通和全屏呈现。
+- `packages/storage/storage-domain/README.zh.md`：领域存储——schema 校验的 KV 记录、持久写入及变更事件；无跨表事务、二级索引和自动迁移。
+- `packages/storage/storage-sqlite/README.zh.md`：SQLite 后端——本地持久化后端与版本要求。
+- `apps/desktop/README.md`：Desktop 运行说明——Electron 壳承载完整 Web 应用，本地 Host 通过经认证的 HTTP 和 WebSocket 提供能力。
 
 早期交接资料中的“Desktop 不开放监听端口”不适用于当前基线。`0.2.0-rc.2` Desktop 默认端口为 `19387`，Web 默认为 `3080`。这属于宿主本地运行机制，不改变 Learny 无需部署应用服务器的产品方向。
 

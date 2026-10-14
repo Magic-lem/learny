@@ -1,38 +1,129 @@
 # Learny
 
-Learny 是面向个人的学习与实践工作台，帮助学习者从一个真实项目或知识主题出发，建立学习路线，记录和整理自己的笔记，通过实践与复习确认理解，再组织成项目总结、简历素材和面试表达。
+**把「我大概懂了」变成「我能说明白」。**
 
-产品名暂定 Learny，工程标识为 `learny`，Demo 插件包名暂定 `dsh-plugin-learny`。项目沿用当前 `project-learning-agent` 目录。
+Learny 是一个跑在 [dsh](https://www.npmjs.com/package/@deepseek-ai/dsh)（DeepSeek Harness）右侧工作台的学习插件。给它一个真实项目目录，或者一个知识主题，它会去查资料、写成中文讲解、排出一条能动手验收的学习路线；你每学完一节，留下的判断、实践证据和自己的解释都保存在本机。
 
-## 文档入口
+它解决的是"用 AI 总结完就忘"这件事：总结替你读完了，但没替你学会。Learny 的顺序是**先自己判断，再看讲解，然后动手，最后用自己的话解释**，每一步都留下可以复查的痕迹。
 
-- [产品设计](docs/product-design.md)：用户、产品范围、学习流程、个人笔记、界面、评价、成果与验收。
-- [Demo 实施计划](docs/demo-plan.md)：里程碑、交付内容、验证顺序与演示脚本。
-- [dsh 开发基线](docs/runtime-baseline.md)：发布渠道、精确版本、源码提交和集成限制。
-- [M0 实现与安装](docs/m0-implementation.md)：可运行代码、安装命令、数据位置、构建补丁与验收记录。
-- [已有架构图](architecture/dsh-learning-demo-architecture.html)：早期拟议架构，可用于理解模块关系。
-- [安装与使用](docs/install-and-use.md)：把 Learny 装进 dsh、配置模型与网页搜索、第一次生成学习路线的完整步骤。
+```
+判断  →  讲解  →  实践  →  解释  →  验收
+你觉得会发生什么   这一节到底在讲什么   真的跑一遍   用自己的话说清楚   逐条对照标准
+```
 
-## 当前状态
+## 它适合谁
 
-2026 年 10 月 9 日：已实现 `dsh-plugin-learny@0.1.3` 的按空间课程路线、项目目录证据、主题资料研究、来源引用、逐标准评价、辅助记录与补课，以及 Markdown 笔记查找、整理版本对照和原文恢复。旧 dsh 示例空间保持兼容，新空间不会自动继承 dsh 路线。主题空间生成路线时会通过 dsh `ctx.web.search/fetch` 获取资料，再调用当前 dsh 会话模型规划节点；搜索凭据缺失时明确失败，不生成模板路线。Learny 不处理认证或供应商配置。M1 的真实模型验收见 [实现记录](docs/m1-implementation.md)，手动模型配置见 [配置示例](docs/model-configuration.md)。M0 已验证 Desktop Host；Desktop 原生窗口仍未验收。
+| 场景 | Learny 做什么 |
+|---|---|
+| 接手一个陌生项目 | 读取仓库目录，按结构与调用链排出一条源码学习路线，节点直接指向真实文件和命令 |
+| 补齐一块基础知识（K8s、消息队列、分布式事务…） | 搜集官方资料，写成中文讲解，按"概念 → 机制 → 易错点 → 动手验证"组织 |
+| 准备面试或项目复盘 | 每一次实践与解释都留档，后续可以继续整理成项目总结与面试表达 |
+| 看英文文档太累 | 网页只作为素材：产出的是中文讲解，原文不保存，只留来源链接与内容指纹 |
 
-2026 年 10 月 14 日：学习产物只保留生成的教程，讲解改成打开节点时按需生成。路线生成只产出骨架（约 66 秒，不再带讲解），课程里只存来源的标题、链接、SHA256 与出处，不再保存网页正文；页面文本只留在研究缓存里，供之后写讲解时复用，默认 30 天后过期。打开某节时才写这一节的讲解（约 11 秒），写入 `learny_study/lessons` 并按来源指纹缓存，重复打开直接复用；来源更新后可手动重写。阅读阶段新增继续深究：可以就某一节提问，也可以选中讲解里的某段直接追问那一段，回答写入 `learny_study/deep_dives` 并挂在对应节点下。评价与导师对话改为依据该节讲解与来源出处判断，不再依赖已删除的原文摘录。新增 `learny/nodeLesson` 与 `learny/deepen` 两个 Remote 方法。
+## 主要能力
 
-2026 年 10 月 13 日：教学改成"讲给你听"，不再让你去读原始英文资料。抓取时先判断返回的是 HTML 还是纯文本，HTML 走一遍正文提取（丢掉 script/style/导航，优先 article/main 区块，块级标签转换行，解码实体），再截取给模型；页面缓存加了格式版本，旧的 HTML 摘录会自动失效重抓一次。路线生成拆成两趟：第一趟产出节点骨架（导读、阅读要点、实践类型、预测与实践要求、验收标准），第二趟单独产出每节的中文讲解 `lesson`（250 到 600 字 Markdown，讲清问题、关键概念、工作机制、易混淆点与本节实践的关系），并规范引用格式为 `[web-n]`。讲解质量不再受一次输出上限牵制；讲解这趟失败时路线仍然可用，只是那一节少一段讲解。`maxOutputTokens` 默认从 4096 提到 8192。
+- **两种学习空间**：项目空间只使用你指定的本地目录作为材料；主题空间先搜索资料再规划路线。
+- **可验收的学习路线**：3–8 个节点，每节都有导读、阅读要点、实践类型和验收标准，节点之间带先修关系。
+- **中文讲解，按需生成**：进入某节的阅读阶段时才写这一节的讲解，写完缓存；资料更新可以重写。你不必读原始网页。
+- **实践按任务类型记录**：执行命令、写配置、对比两种做法、做方案取舍，各给对应的记录栏，而不是一个万能文本框。
+- **逐标准评价**：提交后按验收标准逐条给出结论，指出证据与缺口，不足时给出有限的补课任务，需要时可以换一个条件重练。
+- **继续深究**：就某一节提问，也可以选中讲解里的某一段直接追问那一段，问答挂在节点下。
+- **本地 Markdown 笔记**：随时记录、查找、按你的意图整理成新版，原文与整理版本都能恢复。
+- **联网可计量**：搜索与抓取有来源判重、正文缓存和滚动 24 小时预算，超预算会停下而不是反复付费。
 
-2026 年 10 月 13 日：每个任务节点现在自带教学层。生成路线时模型为每节写一段导读（这一节在讲什么、和上一节什么关系、阅读时留意什么）和 2 到 4 条阅读要点，每条要点用 sourceId 指明出处；导读出现在预测阶段，要点出现在阅读阶段，资料正文仍然按需展开。实践不再统一成一个自由文本框：节点会给出实践类型（command 执行命令、config 写配置、compare 对比、design 方案取舍、mixed 自由记录），界面按类型给出对应的记录栏，提交时合成一份带小标题的证据文本，评价与历史记录的口径不变。同时修掉两处挡住了教学的问题：阅读阶段的资料在记录已读之前就能打开（此前只能看到 `web-1` 这样的编号），课程 JSON 不合法时会带着校验信息自动重试一次，而不是让整条已研究好的路线作废。
+## 快速开始
 
-2026 年 10 月 13 日：主题研究的抓取变快了，也变可计量了。来源按地址身份判重——去掉 `utm_*`、`ws_call_id` 一类跟踪参数和页面片段，统一主机名大小写——同一页面在不同检索标签下只算一份材料，正文完全相同的两个地址也只留一条；读过的正文存进 `learny_study/pages`，默认 30 天内重新生成路线直接复用，不再重复抓取。每次搜索和每次读取在发出前记入 `learny_study/calls`，按滚动 24 小时计量；超过每日上限时停止抓取，但会保住已经读到的资料（够两条来源就照常成课，不足则明确报告预算用尽，而不是当成搜索失败）。默认上限 60 次，可用插件配置 `researchDailyCallBudget` 与 `researchPageCacheTtlDays` 调整。同一空间重新生成路线后，显示的是最新一次生成的课程。
+需要 Node.js 24+、pnpm，和一个已经能对话的 dsh：
 
-当前产品范围以产品设计为准；依赖与宿主行为以开发基线及该版本源码为准。旧交接资料与架构图使用的 `c291e7961a` 仅作为历史记录，不作为新开发依据。
+```sh
+git clone https://github.com/Magic-lem/learny.git
+cd learny
+pnpm install --frozen-lockfile
+pnpm build
+pnpm pack:plugin
 
-## 交付方向
+# 从 dsh 自带的 web profile 派生一份 Learny 专用 profile（首次）
+dsh --profile learny --from-default-profile web --dump-config
+dsh plugin --profile learny add ./artifacts/dsh-plugin-learny-0.1.4.tgz
+dsh plugin --profile learny add ./artifacts/dsh-web-search-oneapi-0.1.2.tgz
 
-Demo 作为一个 dsh 可安装插件交付。应用状态和业务数据保存在本机，模型与网页资料仍可使用外部 API，无需部署 Learny 应用服务器。
+# 用自带的 DeepSeek 搜索时，把下面第二行换成 export DEEPSEEK_API_KEY=...
+# 其他网关的搜索配置见 docs/configuration.md
+dsh --profile learny \
+  --patch ./examples/dsh-model.patch.yml \
+  --patch ./examples/dsh-oneapi-web-search.patch.yml \
+  --no-open --host 127.0.0.1 --port 3097
+```
 
-日常使用保留 dsh 左侧对话，右侧显示当前学习任务；学习地图、我的笔记、实践记录、成果工作台可在右侧切换或展开全屏。学习空间独立于单条聊天，支持多个聊天关联同一个学习过程。
+终端会打印一行带访问 token 的地址，用它打开页面，在右侧工作台切到 Learny。模型和网页搜索属于 dsh profile 的配置，完整步骤见 **[安装与使用](docs/install-and-use.md)**。
 
-首版提供本地 Markdown 笔记系统：随时记录、编辑和查找，按用户要求补充、润色与排版，保留原文和整理版本，并关联学习节点、复习任务和成果引用。
+第一次打开时，Learny 顶部会做一次能力自检（模型 / 网页搜索 / 网页抓取）。主题空间需要搜索能力，项目空间不需要。
 
-本地启动：`pnpm install --frozen-lockfile`、`pnpm build`、`pnpm pack:plugin`、`pnpm demo:install`、`pnpm demo:web`。打开终端输出的本地访问 URL，在右侧边栏选择 Learny。详细步骤与验收边界见 [M0 实现与安装](docs/m0-implementation.md)。
+## 配置
+
+模型、网页搜索和插件参数都写在 dsh profile 里，Learny 自己不保存任何 endpoint 与密钥。常用的几个插件配置：
+
+| 配置 | 默认 | 作用 |
+|---|---|---|
+| `dataDir` | 必填 | 学习数据目录（`learny.sqlite` 与 `notes/`） |
+| `maxOutputTokens` | `8192` | 单次模型输出上限，节点多或讲解更长时可调大 |
+| `researchDailyCallBudget` | `60` | 每个空间滚动 24 小时的搜索+抓取上限 |
+| `researchPageCacheTtlDays` | `30` | 已读网页正文的复用天数 |
+| `timeoutMs` | `60000` | 单次模型调用超时 |
+
+完整说明与示例：[配置](docs/configuration.md)。
+
+## 数据与隐私
+
+- 所有学习数据都在本机：`<dataDir>/learny.sqlite` 存学习空间、路线、尝试、讲解、追问与调用记账，`<dataDir>/notes/` 存 Markdown 笔记。
+- 联网只发生在三类调用：模型推理、网页搜索、网页抓取。凭据由 dsh 管理，Learny 不接触。
+- 学习产物里**不保存网页正文**，只保留来源标题、链接与 SHA256；正文只短期留在研究缓存中，用于生成讲解与回答追问。
+- 搜索与抓取按来源判重、复用缓存、受每日预算约束，宁可停下也不会重复付费。
+
+## 它是怎么工作的
+
+Learny 是一个 dsh 插件，由三部分组成：浏览器里的学习面板（React）、宿主侧的学习服务（Remote API + 领域状态机）、以及本机的 SQLite 持久化。模型、搜索、抓取都通过 dsh 暴露的能力调用，所以换模型或换搜索供应商都不需要改 Learny。
+
+```
+dsh 会话（你选中的模型）
+        │  ctx.llm            ctx.web.search / fetch
+        ▼                            ▼
+  学习服务（路线 / 讲解 / 评价 / 笔记 / 记账）
+        │
+        ▼
+  本机 SQLite + Markdown 笔记
+```
+
+细节见 **[架构](docs/architecture.md)**，早期架构图见 [architecture/](architecture/)。
+
+## 文档
+
+- [安装与使用](docs/install-and-use.md)：从零装好并生成第一条学习路线。
+- [配置](docs/configuration.md)：模型、网页搜索、插件参数。
+- [架构](docs/architecture.md)：模块边界、数据流与联网边界。
+- [设计系统](docs/design-system.md)：颜色、字号、组件规范。
+- [维护者笔记](docs/internal/)：产品设计、里程碑与实现记录，面向本仓库的维护者，不是使用说明。
+
+## 开发
+
+```sh
+pnpm install --frozen-lockfile
+pnpm build         # 编译 Host、生成 Remote 类型、打包浏览器端
+pnpm typecheck
+pnpm test          # 38 项，覆盖学习流程、搜索适配器、抓取记账与缓存
+pnpm pack:plugin   # 产出 artifacts/ 下的两个插件包
+pnpm demo:install && pnpm demo:web   # 本地起一个 demo 宿主
+```
+
+仓库结构：`packages/learny` 是插件本体，`packages/web-search-oneapi` 是把兼容网关接成 dsh 搜索 provider 的可选适配器，`examples/` 是 dsh profile overlay 示例，`tests/` 是自动化检查，`architecture/` 是架构图。
+
+## 状态与限制
+
+- 宿主基线是 `dsh@0.2.0-rc.2`（预发布版本），插件声明的兼容范围以此为准；升级 dsh 前先看 [维护者笔记里的基线说明](docs/internal/runtime-baseline.md)。
+- 面向单用户、本地优先：没有服务端、没有账号体系，多人共用一台机器请各自使用独立 `dataDir`。
+- Web 宿主已实际验证；Desktop 原生窗口尚未验证。
+- 讲解、评价、追问都依赖模型，输出质量取决于你配置的模型；讲解质量不达标可以重写某节，或换一个模型再试。
+
+## 许可
+
+本仓库尚未添加开源许可证文件，因此当前不授予复制、修改与再分发许可。确定许可后会补上根目录 `LICENSE`。

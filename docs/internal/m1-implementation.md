@@ -45,7 +45,7 @@ pnpm pack:plugin
 pnpm demo:install
 ```
 
-在已有模型配置的宿主中启动 `pnpm demo:web`；手动 URL/token 配置使用 [示例 overlay](../examples/dsh-model.patch.yml)。打开 Learny，创建或选择学习空间，从节点开始。模型操作需要已有的 dsh 聊天；不要仅用未保存的临时草稿聊天进行模型操作。
+在已有模型配置的宿主中启动 `pnpm demo:web`；手动 URL/token 配置使用 [示例 overlay](../../examples/dsh-model.patch.yml)。打开 Learny，创建或选择学习空间，从节点开始。模型操作需要已有的 dsh 聊天；不要仅用未保存的临时草稿聊天进行模型操作。
 
 重现模型验收时对测试宿主设置 `LEARNY_SMOKE_URL`、临时宿主访问凭证 `LEARNY_SMOKE_TOKEN`、报告路径 `LEARNY_SMOKE_REPORT`，执行 `node scripts/smoke-m1.mjs`；退出并重新启动后执行 `node scripts/smoke-m1.mjs --resume`。报告不保存模型 token 或宿主访问凭证。
 

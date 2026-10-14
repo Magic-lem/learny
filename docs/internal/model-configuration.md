@@ -4,7 +4,7 @@ Learny 只调用 dsh 的 `ctx.llm.stream`，读取当前聊天的模型选择；
 
 已有可用模型的 dsh profile 可以直接安装 Learny：只要 profile 里已经配好模型，Learny 不需要任何额外接入。安装前先确认插件声明的宿主版本覆盖你正在用的 dsh 版本，不覆盖时先升级 dsh，不要强行安装。
 
-也可以手动给 dsh 配置模型。示例 [dsh-model.patch.yml](../examples/dsh-model.patch.yml) 使用当前宿主支持的 `llm-pi-ai` 与 OpenAI 兼容协议；URL、token、模型名称通过进程环境注入，不写入 Learny 配置或产品代码。URL 需要包含服务要求的 API 基础路径（如 `/v1`）。其他协议应在 dsh 中设置对应的 `api`，服务要求的额外 header 也由 dsh provider 配置承担。
+也可以手动给 dsh 配置模型。示例 [dsh-model.patch.yml](../../examples/dsh-model.patch.yml) 使用当前宿主支持的 `llm-pi-ai` 与 OpenAI 兼容协议；URL、token、模型名称通过进程环境注入，不写入 Learny 配置或产品代码。URL 需要包含服务要求的 API 基础路径（如 `/v1`）。其他协议应在 dsh 中设置对应的 `api`，服务要求的额外 header 也由 dsh provider 配置承担。
 
 ```sh
 # 在本地终端设置实际 URL、token、模型名称，不提交到代码库。
@@ -20,7 +20,7 @@ node_modules/.bin/dsh --profile learny-smoke \
   --no-open --host 127.0.0.1 --port 3097
 ```
 
-如果模型服务是 OneAPI，可以直接使用 [dsh-oneapi.patch.yml](../examples/dsh-oneapi.patch.yml)。这个 overlay 仍然属于 dsh profile：Learny 插件只消费 dsh 的 `ctx.llm`，不会读取或保存 OneAPI endpoint、模型名和密钥。把示例中的环境变量分别设置为 `LEARNY_ONEAPI_URL`、`LEARNY_ONEAPI_MODEL` 和 `LEARNY_ONEAPI_KEY`，并将 `--patch` 指向该文件。使用 `pnpm demo:web` 时只设置 `DSH_PATCH_FILE` 也可以，脚本会把它透传给 dsh。
+如果模型服务是 OneAPI，可以直接使用 [dsh-oneapi.patch.yml](../../examples/dsh-oneapi.patch.yml)。这个 overlay 仍然属于 dsh profile：Learny 插件只消费 dsh 的 `ctx.llm`，不会读取或保存 OneAPI endpoint、模型名和密钥。把示例中的环境变量分别设置为 `LEARNY_ONEAPI_URL`、`LEARNY_ONEAPI_MODEL` 和 `LEARNY_ONEAPI_KEY`，并将 `--patch` 指向该文件。使用 `pnpm demo:web` 时只设置 `DSH_PATCH_FILE` 也可以，脚本会把它透传给 dsh。
 
 如果希望把 provider 配置放在环境变量里而不是写进文件，也可以像示例那样用 `!!js process.env.*` 注入整段 provider JSON。这类 overlay 都属于用户自己的 dsh profile，Learny 发布包不依赖其中任何一项。
 
@@ -41,7 +41,7 @@ DEEPSEEK_SEARCH_BASE_URL=https://your-search-gateway/anthropic/v1
 
 OneAPI 的普通对话模型配置不能自动变成 dsh 搜索 provider。只有当 OneAPI endpoint 同时实现 Anthropic 原生 `web_search` 并返回 `web_search_tool_result` 结构块时，才能通过 dsh 的 `web-search-deepseek` overlay 复用；当前本机 OneAPI 实测能完成模型对话，但没有返回这些搜索结果块，因此 Learny 仍会把搜索能力报告为未配置。若 OneAPI 使用自己的搜索协议，需要在 dsh 中实现一个 `WebSearchProvider` 适配器，Learny 不应直接处理该协议。
 
-仓库现在提供独立的 `dsh-web-search-oneapi` 插件。它位于 dsh 能力层，不进入 Learny，调用 OneAPI 的 OpenAI-compatible `/v1/responses`、`/v1/messages` 或 `/v1/chat/completions`，并接受响应里的 `sources`、`search_results`、`documents`、citation annotations 或已完成的 Responses `open_page` 来源 URL；普通回答中的网址不会被当作搜索证据。安装插件后，在 dsh profile 加上 [dsh-oneapi-web-search.patch.yml](../examples/dsh-oneapi-web-search.patch.yml)：
+仓库现在提供独立的 `dsh-web-search-oneapi` 插件。它位于 dsh 能力层，不进入 Learny，调用 OneAPI 的 OpenAI-compatible `/v1/responses`、`/v1/messages` 或 `/v1/chat/completions`，并接受响应里的 `sources`、`search_results`、`documents`、citation annotations 或已完成的 Responses `open_page` 来源 URL；普通回答中的网址不会被当作搜索证据。安装插件后，在 dsh profile 加上 [dsh-oneapi-web-search.patch.yml](../../examples/dsh-oneapi-web-search.patch.yml)：
 
 ```dotenv
 ONEAPI_SEARCH_BASE_URL=https://oneapi.example.com

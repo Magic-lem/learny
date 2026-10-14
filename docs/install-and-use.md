@@ -8,7 +8,7 @@ Learny 是一个 dsh 插件：它装在 dsh profile 里，学习数据留在本�
 |---|---|
 | Node.js | 24 及以上（`node -v`） |
 | pnpm | 用来安装工作区和打包插件 |
-| dsh | 版本要覆盖插件声明的宿主基线，本仓库固定 `@deepseek-ai/dsh@0.2.0-rc.2`（见 [dsh 开发基线](runtime-baseline.md)） |
+| dsh | 版本要覆盖插件声明的宿主基线，本仓库固定 `@deepseek-ai/dsh@0.2.0-rc.2`（见 [维护者笔记里的基线说明](internal/runtime-baseline.md)） |
 | 模型 | 任意一个 dsh 能调用的模型：DeepSeek、OpenAI 兼容网关、公司内部网关都可以，只要能在 dsh 里跑通一次对话 |
 | 网页搜索（可选） | 生成主题路线时需要。项目空间只用本地材料，不需要搜索 |
 
@@ -71,7 +71,7 @@ export LEARNY_MODEL_KEY='...'
 export LEARNY_MODEL_ID='your-model-id'
 ```
 
-内部网关往往要额外路由 header，这类参数写在 dsh provider 的 `headers` 里，不要写进 Learny。完整说明见 [模型配置](model-configuration.md)。
+内部网关往往要额外路由 header，这类参数写在 dsh provider 的 `headers` 里，不要写进 Learny。完整说明见 [配置](configuration.md)。
 
 ## 5. 配置网页搜索
 

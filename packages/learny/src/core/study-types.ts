@@ -48,8 +48,13 @@ export interface TutorMessage {
 }
 export interface TutorRequest { workspaceId: string; attemptId: string; sessionId: string; message: string }
 /** One follow-up explanation written for a node, with the question that asked for it. */
-export interface DeepDive { id: string; workspaceId: string; nodeId: string; question: string; answer: string; createdAt: string }
-export interface AttemptAction { workspaceId: string; attemptId: string; expectedRevision: number; action: 'prediction' | 'reading' | 'hint' | 'startPractice' | 'practice' | 'explanation'; text: string }
+export type FollowUpMode = 'panel' | 'chat'
+export interface DeepDive {
+  id: string; workspaceId: string; nodeId: string; question: string; answer: string; createdAt: string;
+  /** `chat` means the question was admitted into the dsh chat and answered there. */
+  mode?: FollowUpMode;
+}
+export interface AttemptAction { workspaceId: string; attemptId: string; expectedRevision: number; action: 'prediction' | 'skipPrediction' | 'reading' | 'hint' | 'startPractice' | 'practice' | 'explanation'; text: string }
 export interface SubmitAttempt { workspaceId: string; attemptId: string; expectedRevision: number; sessionId: string; assistance: 'independent' | 'helped' | 'unknown' }
 export type RevisionMode = 'format' | 'polish' | 'supplement'
 export interface OrganizeNote { id: string; sessionId: string; workspaceId: string; noteId: string; expectedVersion: string; mode: RevisionMode; instruction: string }
@@ -61,6 +66,12 @@ export interface NoteRevision {
 }
 export interface ModelRequest { sessionId: string; runId: string; kind: 'course' | 'lesson' | 'followup' | 'evaluation' | 'notes' | 'tutor'; system: string; payload: string }
 export interface ModelGateway { generate(request: ModelRequest, signal: AbortSignal): Promise<string>; close(): Promise<void> }
+
+/** The current chat session, as seen by a plugin that wants the learner's question answered there. */
+export interface ChatGateway {
+  /** Admit one message into the session so its own agent answers it in the transcript. */
+  ask(request: { sessionId: string; text: string }, signal: AbortSignal): Promise<void>
+}
 
 export interface CachedPage { identity: string; url: string; title: string; excerpt: string; sha256: string; fetchedAt: string; format?: number }
 export type ResearchCallKind = 'search' | 'fetch'

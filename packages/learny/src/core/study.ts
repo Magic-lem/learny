@@ -8,8 +8,9 @@ import { invalid, notFound } from './errors.ts'
 import { builtinCourse, hints } from './course.ts'
 import { buildStarterCourse, planCourse, projectSources, researchTopic } from './course-builder.ts'
 import { answerFollowUp, loadNodeMaterial, writeLesson } from './lesson.ts'
+import type { NodeMaterial } from './lesson.ts'
 import { ResearchLedger } from './research-ledger.ts'
-import type { Attempt, AttemptAction, DeepDive, Evaluation, ModelGateway, NoteRevision, OrganizeNote, ResearchGateway, StudyCourse, StudyNode, StudySnapshot, SubmitAttempt, TutorMessage, TutorRequest } from './study-types.ts'
+import type { Attempt, AttemptAction, ChatGateway, DeepDive, Evaluation, FollowUpMode, ModelGateway, NoteRevision, OrganizeNote, ResearchGateway, StudyCourse, StudyNode, StudySnapshot, SubmitAttempt, TutorMessage, TutorRequest } from './study-types.ts'
 type CourseRecord = StudyCourse & { id: string; workspaceId: string }
 
 const verdictSchema = z.object({ id: z.string(), status: z.enum(['met','not-met','insufficient']),
@@ -20,6 +21,28 @@ const revisionSchema = z.object({ markdown: z.string().min(1).max(1_000_000), su
 const parse = (output: string): unknown => JSON.parse(output.trim().replace(/^```(?:json)?\s*\n([\s\S]*?)\n```$/, '$1'))
 const limit = (value: string, field: string, max = 40_000) => { if (!value.trim() || value.length > max) invalid(field); return value }
 const failure = (error: unknown) => error instanceof Error ? error.message.slice(0, 500) : 'Model call failed'
+
+/**
+ * The message Learny admits into the chat for a follow-up.
+ *
+ * The tutor's constraints are a system prompt inside Learny, and the chat answers
+ * with its own agent prompt, so the constraints travel with the question: same
+ * material, same "do not write the practice answer for me" rule, different surface.
+ */
+export function tutorPrompt(workspaceName: string, node: StudyNode, lesson: string, material: NodeMaterial[], question: string): string {
+  const parts = [
+    '【Learny 学习提问】请按下面的导师约束回答，不要当成普通闲聊。',
+    `学习空间：${workspaceName}`,
+    `本节：${node.title}`,
+    node.briefing ? `本节导读：${node.briefing}` : '',
+    lesson ? `本节讲解（节选）：\n${lesson.slice(0, 1200)}` : '',
+    node.keyPoints?.length ? `阅读要点：\n${node.keyPoints.map(point => `- ${point.text}（${point.sourceId}）`).join('\n')}` : '',
+    material.length ? `本节依据的资料（只使用这些）：\n${material.map(item => `- [${item.id}] ${item.title} ${item.url}`).join('\n')}` : '',
+    `学习者的问题：${question}`,
+    '要求：先回应问题本身，再用一个可验证的下一步或小例子推进；只使用上面给出的资料，不编造资料里没有的内容；不要代写实践答案；用中文，引用依据时标注 [资料id]。',
+  ]
+  return parts.filter(Boolean).join('\n\n')
+}
 
 /** Only whitespace and existing Markdown structural prefixes may change in format mode. */
 export function formatText(markdown: string): string {
@@ -53,6 +76,8 @@ export interface StudyServiceOptions {
   researchDailyCallBudget?: number
   /** How long a page Learny already read stays reusable. */
   researchPageCacheTtlDays?: number
+  /** Where a learner's follow-up question is answered: Learny's panel, or the dsh chat. */
+  chat?: ChatGateway
 }
 
 export class StudyService {
@@ -60,11 +85,13 @@ export class StudyService {
   private jobs = new Map<string, Promise<unknown>>()
   private stopping = false
   private readonly ledger: ResearchLedger
+  private readonly chat?: ChatGateway
   constructor(private domain: Domain<typeof studyDomain>, private learning: LearningService, private model: ModelGateway, private research?: ResearchGateway, options: StudyServiceOptions = {}) {
     this.ledger = new ResearchLedger(domain, {
       dailyCallBudget: options.researchDailyCallBudget ?? 60,
       pageCacheTtlMs: (options.researchPageCacheTtlDays ?? 30) * 86_400_000,
     })
+    this.chat = options.chat
   }
 
   async initialize(): Promise<void> {
@@ -212,7 +239,6 @@ export class StudyService {
 
   /** Page text for a node, reused from the research cache and re-read only when it is gone. */
   private async nodeMaterial(course: StudyCourse, node: StudyNode, workspaceId: string, signal: AbortSignal) {
-    if (!this.research) throw new Error('Learny 的 dsh web 搜索未配置，无法读取资料。')
     return loadNodeMaterial(node, course.sources, workspaceId, this.research, this.ledger, signal)
   }
 
@@ -242,8 +268,14 @@ export class StudyService {
     })
   }
 
-  /** One follow-up about a node: a question, or a passage the learner picked out. */
-  async deepen(request: { workspaceId: string; nodeId: string; question: string; sessionId: string }, signal = new AbortController().signal): Promise<DeepDive> {
+  /**
+   * One follow-up about a node: a question, or a passage the learner picked out.
+   *
+   * `mode: 'chat'` hands the question to the dsh chat, where the conversation
+   * already lives, carrying the tutor instruction with it; `mode: 'panel'` keeps
+   * the answer inside Learny. Either way the question is recorded on the node.
+   */
+  async deepen(request: { workspaceId: string; nodeId: string; question: string; sessionId: string; mode?: FollowUpMode }, signal = new AbortController().signal): Promise<DeepDive> {
     signal.throwIfAborted()
     const workspace = this.learning.workspace(request.workspaceId)
     const course = this.storedCourse(request.workspaceId)
@@ -252,10 +284,20 @@ export class StudyService {
     if (!node) notFound(request.nodeId)
     const question = limit(request.question.trim(), 'question', 2000)
     if (!request.sessionId.trim()) throw new Error('追问需要当前 dsh 会话。')
-    const lesson = this.domain.table('lessons').get(`${request.workspaceId}:${request.nodeId}`)?.lesson
-    const answer = await answerFollowUp(workspace.name, workspace.goal, node, lesson,
-      await this.nodeMaterial(course, node, request.workspaceId, signal), question, this.model, request.sessionId, signal)
-    const record: DeepDive = { id: randomUUID(), workspaceId: request.workspaceId, nodeId: request.nodeId, question, answer, createdAt: new Date().toISOString() }
+    const lesson = this.lessonOf(request.workspaceId, node)
+    const mode: FollowUpMode = request.mode === 'chat' ? 'chat' : 'panel'
+    let answer = ''
+    if (mode === 'chat') {
+      if (!this.chat) throw new Error('当前宿主不支持把问题发进对话；可以改用「就地追问」。')
+      // The chat's agent answers with its own system prompt, so the tutor's
+      // constraints travel with the question instead of being assumed.
+      const text = tutorPrompt(workspace.name, node, lesson, await this.nodeMaterial(course, node, request.workspaceId, signal), question)
+      await this.chat.ask({ sessionId: request.sessionId, text }, signal)
+    } else {
+      answer = await answerFollowUp(workspace.name, workspace.goal, node, lesson,
+        await this.nodeMaterial(course, node, request.workspaceId, signal), question, this.model, request.sessionId, signal)
+    }
+    const record: DeepDive = { id: randomUUID(), workspaceId: request.workspaceId, nodeId: request.nodeId, question, answer, mode, createdAt: new Date().toISOString() }
     await this.domain.table('deep_dives').put(record.id, { ...record })
     return record
   }
@@ -307,6 +349,9 @@ export class StudyService {
       switch (request.action) {
         case 'prediction': if (a.stage !== 'prediction') invalid('stage'); a.prediction = limit(request.text,'prediction'); a.stage = 'reading'; break
         case 'reading': if (a.stage !== 'reading' || !node.sourceIds.includes(request.text)) invalid('source or stage'); if (!a.readingIds.includes(request.text)) a.readingIds.push(request.text); break
+        // Prediction-first is a technique, not a gate: a learner who does not want
+        // to guess yet can read the explanation first and come back to it.
+        case 'skipPrediction': if (a.stage !== 'prediction') invalid('stage'); a.stage = 'reading'; break
         case 'hint': if (a.stage === 'prediction') invalid('prediction required'); { const hint = hints[a.nodeId]?.[a.hints.length]; if (!hint) invalid('no more hints'); a.hints.push(hint); } break
         // The node's teaching text is what the learner reads here; the source list is
         // optional reference material, so opening every link is not a gate.

@@ -6,6 +6,7 @@ import { SqliteStorageBackend } from '@deepseek-ai/dsh-storage-sqlite'
 import type { JournalMode } from '@deepseek-ai/dsh-storage-sqlite'
 import { StudyService } from '../core/study.ts'
 import type { StudyServiceOptions } from '../core/study.ts'
+import { DshChatGateway } from './chat.ts'
 import { studyDomain } from '../storage/study-domain.ts'
 import type { ModelGateway } from '../core/study-types.ts'
 import type { ResearchGateway } from '../core/study-types.ts'
@@ -21,7 +22,8 @@ export async function createRuntime(ctx: Context, dataDir: string, journalMode: 
     const facility = new DomainFacility(ctx, { backend: 'learny-sqlite' })
     const domain = await facility.open(learnyDomain)
     const service = new LearningService(domain, new NotesFiles(resolve(dataDir)))
-    const study = new StudyService(await facility.open(studyDomain), service, model, research ?? (ctx as Context & { web?: ResearchGateway }).web, options)
+    const study = new StudyService(await facility.open(studyDomain), service, model, research ?? (ctx as Context & { web?: ResearchGateway }).web,
+      { chat: new DshChatGateway(ctx), ...options })
     await study.initialize()
     let closing: Promise<void> | undefined
     return { service, study, close: () => closing ??= (async () => { await study.close(); await service.close(); unregister(); await backend.close() })() }

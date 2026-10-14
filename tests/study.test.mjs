@@ -19,6 +19,7 @@ function model() {
       const p=JSON.parse(request.payload)
       if(request.kind==='evaluation')return JSON.stringify({criteria:p.task.criteria.map(c=>({id:c.id,status:'met',quotes:[p.submission.evidence.slice(0,20)],sourceIds:p.task.sourceIds.slice(0,1),reason:'Explicit trace and explanation.',remediation:''})),summary:'Criteria evidenced.'})
       if(request.kind==='tutor')return '先回到 schemas 的 schemaOf：对照它解构和返回的字段，写出 timeoutMs 是否存在于投影结果。'
+      if(request.kind==='followup')return JSON.stringify({answer:`先回答你的问题：${String(p.question??'').slice(0,40)}。再给一个可以自己验证的小例子，最后说明还需要确认什么。[web-1]`})
       return JSON.stringify({markdown:p.mode==='supplement'?'AI 示例：投影结果包含 name。[source:schemas]':p.mode==='format'?`## ${p.original}`:`${p.original}\n\n自己的观察。`,summary:'Organized per instruction.',sourceIds:p.mode==='supplement'?['schemas']:[]})
     },async close(){}
   }
@@ -27,6 +28,31 @@ async function setup(t){const dir=await mkdtemp(join(tmpdir(),'learny-study-')),
 async function action(study,a,kind,text=''){return study.act({workspaceId:a.workspaceId,attemptId:a.id,expectedRevision:a.revision,action:kind,text})}
 async function answered(study,id,hint=false){let a=await study.start(id,'registration');a=await action(study,a,'prediction','I predict execute stays local.');a=await action(study,a,'reading','schemas');a=await action(study,a,'startPractice');if(hint)a=await action(study,a,'hint');a=await action(study,a,'practice','My trace: input execute and timeoutMs are excluded. JSON {name:"echo",description:"echo",parameters:{}}.');a=await action(study,a,'explanation','schemaOf projects fields. The host executes functions; the model selects names.');return a}
 const submit=(study,a)=>study.submit({workspaceId:a.workspaceId,attemptId:a.id,expectedRevision:a.revision,sessionId:'chat-one',assistance:'independent'},new AbortController().signal)
+
+test('prediction can be skipped and a follow-up can be answered in the chat',async t=>{
+ const asked=[]
+ const chat={async ask(request){asked.push(request)}}
+ const dir=await mkdtemp(join(tmpdir(),'learny-chat-'));const project=join(dir,'project');await mkdir(project);await writeFile(join(project,'README.md'),'# My project\n\nEntry and data flow.')
+ const host=await runtime(dir,model(),undefined,{chat});t.after(async()=>{await host.close();await rm(dir,{recursive:true,force:true})})
+ const space=await host.service.createWorkspace({name:'My project',goal:'Understand the entry and data flow',kind:'project',materialPath:project})
+ const course=await host.study.generateCourse(space.id)
+ const nodeId=course.nodes[0].id
+
+ // 预测是可选的：不想猜可以直接看讲解。
+ let attempt=await host.study.start(space.id,nodeId)
+ attempt=await host.study.act({workspaceId:space.id,attemptId:attempt.id,expectedRevision:attempt.revision,action:'skipPrediction',text:''})
+ assert.equal(attempt.stage,'reading');assert.equal(attempt.prediction,'')
+
+ // 追问默认发到对话里，导师约束随问题一起过去；面板里只记下提问。
+ const dive=await host.study.deepen({workspaceId:space.id,nodeId,question:'为什么工具要留在宿主？',sessionId:'chat-one',mode:'chat'})
+ assert.equal(dive.mode,'chat');assert.equal(dive.answer,'');assert.equal(asked.length,1)
+ assert.match(asked[0].text,/不要代写实践答案/);assert.match(asked[0].text,/只使用上面给出的资料/);assert.match(asked[0].text,/为什么工具要留在宿主？/)
+ assert.equal((await host.study.snapshot(space.id)).deepDives[0].mode,'chat')
+
+ // 就地追问仍然走 Learny 自己的受约束导师。
+ const local=await host.study.deepen({workspaceId:space.id,nodeId,question:'再解释一次',sessionId:'chat-one',mode:'panel'})
+ assert.equal(local.mode,'panel');assert.ok(local.answer.length>0);assert.equal(asked.length,1)
+})
 
 test('a node is read through its explanation: opening every source link is not a gate',async t=>{
  const {study,space}=await setup(t);let a=await study.start(space.id,'registration')

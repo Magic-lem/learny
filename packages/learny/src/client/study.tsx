@@ -90,10 +90,10 @@ export function StudyWorkbench({workspaceId,sessionId,api,t,onNote,onGenerateCou
     try{await value(api.nodeLesson(workspaceId,node.id,sessionId,rewrite,signal()));await refresh();setLessonState({status:'idle'})}
     catch(e){setLessonState({status:'error',error:e instanceof Error?e.message:String(e)})}
   }
-  async function askFollowUp(text:string){
+  async function askFollowUp(text:string,mode:'panel'|'chat'='chat'){
     const value_=text.trim()
     if(!node||!value_)return
-    await run(async()=>{await value(api.deepen({workspaceId,nodeId:node.id,question:value_,sessionId},signal()));if(value_===question.trim())setQuestion('');await refresh()})
+    await run(async()=>{await value(api.deepen({workspaceId,nodeId:node.id,question:value_,sessionId,mode},signal()));if(value_===question.trim())setQuestion('');await refresh()})
   }
   /** Selection inside the lesson is the "this part" the learner wants explained. */
   function capturePick(){
@@ -108,7 +108,7 @@ export function StudyWorkbench({workspaceId,sessionId,api,t,onNote,onGenerateCou
     const target=document.getElementById(anchor.getAttribute('href')!.slice(1))
     if(target instanceof HTMLDetailsElement)target.open=true
   }
-  async function act(action:'prediction'|'reading'|'hint'|'startPractice'|'practice'|'explanation',text:string){
+  async function act(action:'prediction'|'skipPrediction'|'reading'|'hint'|'startPractice'|'practice'|'explanation',text:string){
     if(!attempt)return
     const next=await value(api.attemptAction({workspaceId,attemptId:attempt.id,expectedRevision:attempt.revision,action,text},signal()))
     if(action!=='hint'&&action!=='reading')try{localStorage.removeItem(`learny.attempt.${attempt.id}.${attempt.stage}`)}catch{}
@@ -169,7 +169,7 @@ export function StudyWorkbench({workspaceId,sessionId,api,t,onNote,onGenerateCou
       <div className="task-grid"><div className="task-main">
         {attempt.stage==='prediction'&&<>
           {node.briefing&&<div className="briefing"><span className="section-label">{t('nodeBriefing')}</span><p>{node.briefing}</p>{node.sourceIds.length>0&&<p className="muted">{t('nodeMaterials',{count:node.sourceIds.length})}</p>}</div>}
-          <div className="prompt"><p>{attempt.retry?node.retryPrediction:node.prediction}</p></div><label>{t('yourPrediction')}<textarea rows={7} value={draft} placeholder={t('predictionPlaceholder')} disabled={busy} onChange={e=>edit(e.target.value)}/></label><div className="task-actions"><button className="primary" disabled={busy||!draft.trim()} onClick={()=>{void run(()=>act('prediction',draft))}}>{t('savePrediction')}</button></div></>}
+          <div className="prompt"><p>{attempt.retry?node.retryPrediction:node.prediction}</p></div><label>{t('yourPrediction')}<textarea rows={7} value={draft} placeholder={t('predictionPlaceholder')} disabled={busy} onChange={e=>edit(e.target.value)}/></label><div className="task-actions"><button className="primary" disabled={busy||!draft.trim()} onClick={()=>{void run(()=>act('prediction',draft))}}>{t('savePrediction')}</button><button disabled={busy} onClick={()=>{void run(()=>act('skipPrediction',''))}}>{t('skipPrediction')}</button></div></>}
         {attempt.stage==='reading'&&<><p>{t('readingGuide')}</p>
         {lesson?<div className="lesson" ref={lessonRef} onMouseUp={capturePick} onClick={openCited}><span className="section-label">{t('lessonTitle')}</span><div className="prose"><Markdown remarkPlugins={[remarkGfm]}>{citeLinks(lesson,cited)}</Markdown></div>
           <div className="row between lesson-foot"><small className="muted">{t('lessonOnDemand')}</small><button className="quiet" disabled={busy||lessonBusy} onClick={()=>{void loadLesson(true)}}><Icon name="refresh" />{t('lessonRewrite')}</button></div></div>
@@ -179,8 +179,8 @@ export function StudyWorkbench({workspaceId,sessionId,api,t,onNote,onGenerateCou
         {!!node.keyPoints?.length&&<div className="key-points"><span className="section-label">{t('keyPoints')}</span><ol>{node.keyPoints.map(point=><li key={point.text}><p>{point.text}</p><small>{materials.find(source=>source.id===point.sourceId)?.title??point.sourceId}</small></li>)}</ol></div>}
         <div className="deepen"><span className="section-label">{t('deepenTitle')}</span><p className="muted">{t('deepenIntro')}</p>
           <label>{t('deepenLabel')}<textarea rows={2} value={question} placeholder={t('deepenPlaceholder')} disabled={busy} onChange={e=>setQuestion(e.target.value)}/></label>
-          <div className="task-actions"><button disabled={busy||!question.trim()} onClick={()=>{void askFollowUp(question)}}>{t('deepenAction')}</button></div>
-          {deepDives.map(dive=><details key={dive.id} className="dive" open><summary>{dive.question}</summary><div className="prose"><Markdown remarkPlugins={[remarkGfm]}>{citeLinks(dive.answer,cited)}</Markdown></div></details>)}</div>
+          <div className="task-actions"><button className="primary" disabled={busy||!question.trim()} onClick={()=>{void askFollowUp(question,'chat')}}>{t('deepenInChat')}</button><button disabled={busy||!question.trim()} onClick={()=>{void askFollowUp(question,'panel')}}>{t('deepenHere')}</button></div>
+          {deepDives.map(dive=><details key={dive.id} className="dive" open><summary>{dive.question}</summary>{dive.mode==='chat'?<p className="muted">{t('deepenAnsweredInChat')}</p>:<div className="prose"><Markdown remarkPlugins={[remarkGfm]}>{citeLinks(dive.answer,cited)}</Markdown></div>}</details>)}</div>
         {!!node.sourceIds.length&&<><p className="muted originals-hint">{t('sourceOriginalHint')}</p>
         {node.sourceIds.map(id=>{
           const source=materials.find(s=>s.id===id)

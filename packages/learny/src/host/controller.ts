@@ -69,7 +69,7 @@ export class LearnyController extends TypertRemoteService {
   }
 
   @Remote('deepen')
-  async deepen(request: { workspaceId: string; nodeId: string; question: string; sessionId: string }, signal: AbortSignal): Promise<DeepDive> {
+  async deepen(request: { workspaceId: string; nodeId: string; question: string; sessionId: string; mode?: 'panel' | 'chat' }, signal: AbortSignal): Promise<DeepDive> {
     signal.throwIfAborted()
     return this.study.deepen(request, signal)
   }

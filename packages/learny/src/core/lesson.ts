@@ -41,16 +41,19 @@ export interface NodeMaterial { id: string; title: string; url: string; text: st
  * were already read and re-read through the host capability when they were not.
  * The result never leaves the process except inside a model request.
  */
-export async function loadNodeMaterial(node: StudyNode, sources: Source[], workspaceId: string, web: ResearchGateway, bookkeeping: ResearchBookkeeping | undefined, signal: AbortSignal): Promise<NodeMaterial[]> {
+export async function loadNodeMaterial(node: StudyNode, sources: Source[], workspaceId: string, web: ResearchGateway | undefined, bookkeeping: ResearchBookkeeping | undefined, signal: AbortSignal): Promise<NodeMaterial[]> {
   const material: NodeMaterial[] = []
   for (const id of node.sourceIds) {
     const source = sources.find(item => item.id === id)
     if (!source) continue
     signal.throwIfAborted()
     const hit: PageHit = { url: source.url, title: source.title }
+    // A project node reads local material that already carries its text; only a
+    // researched node needs the host web capability to bring the page back.
+    if (!source.excerpt && !web) throw new Error('Learny 的 dsh web 搜索未配置，无法读取资料。')
     const page = source.excerpt
       ? { identity: source.id, url: source.url, title: source.title, text: source.excerpt, sha256: source.sha256 }
-      : await readPage(hit, workspaceId, web, bookkeeping, signal)
+      : await readPage(hit, workspaceId, web!, bookkeeping, signal)
     if (page) material.push({ id, title: page.title, url: page.url, text: page.text })
   }
   return material

@@ -9,6 +9,19 @@ export function normalizeLessonCitations(lesson: string): string {
   return lesson.replace(/\[sourceId:\s*([a-z0-9-]+)\]/gi, '[$1]')
 }
 
+/**
+ * Some replies double-escape newlines, so the decoded JSON string holds a literal
+ * `\n` instead of a line break and Markdown renders one long paragraph. When the
+ * text carries no real newline at all but does carry escaped ones, those are the
+ * intended breaks; decode them. A mixed string is left alone rather than guessed at.
+ */
+export function normalizeLessonText(lesson: string): string {
+  const unescaped = /[\r\n]/.test(lesson) || !lesson.includes('\\n')
+    ? lesson
+    : lesson.replace(/\\r\\n/g, '\n').replace(/\\n/g, '\n')
+  return normalizeLessonCitations(unescaped)
+}
+
 const lessonSchema = z.object({ lesson: z.string().min(80).max(8000) }).strict()
 
 /** Parse a model reply that must be one JSON object, fence or prose around it included. */
@@ -66,13 +79,13 @@ export async function writeLesson(workspaceName: string, goal: string, node: Stu
 输出严格 JSON：{lesson}，lesson 里的换行用 \\n 转义。不要输出 JSON 之外的任何内容。`
   const payload = JSON.stringify({ workspaceName, goal, node: brief(node), material: material.map(({ id, title, text }) => ({ id, title, text })) })
   try {
-    return normalizeLessonCitations(lessonSchema.parse(planJson(await model.generate({ sessionId, runId: `lesson:${node.id}`, kind: 'lesson', system, payload }, signal))).lesson)
+    return normalizeLessonText(lessonSchema.parse(planJson(await model.generate({ sessionId, runId: `lesson:${node.id}`, kind: 'lesson', system, payload }, signal))).lesson)
   } catch (first) {
     const repair = await model.generate({ sessionId, runId: `lesson:${node.id}`, kind: 'lesson',
       system: `${system}
 上一次输出没有通过校验（${messageOf(first)}）。重新输出**完整**、符合上述结构的 JSON。`,
       payload }, signal)
-    return normalizeLessonCitations(lessonSchema.parse(planJson(repair)).lesson)
+    return normalizeLessonText(lessonSchema.parse(planJson(repair)).lesson)
   }
 }
 
@@ -91,12 +104,12 @@ export async function answerFollowUp(workspaceName: string, goal: string, node: 
     material: material.map(({ id, title, text }) => ({ id, title, text })) })
   const read = (output: string) => followUpSchema.parse(planJson(output)).answer
   try {
-    return normalizeLessonCitations(read(await model.generate({ sessionId, runId: `followup:${node.id}`, kind: 'followup', system, payload }, signal)))
+    return normalizeLessonText(read(await model.generate({ sessionId, runId: `followup:${node.id}`, kind: 'followup', system, payload }, signal)))
   } catch (first) {
     const repair = await model.generate({ sessionId, runId: `followup:${node.id}`, kind: 'followup',
       system: `${system}
 上一次输出没有通过校验（${messageOf(first)}）。重新输出**完整**、符合上述结构的 JSON。`,
       payload }, signal)
-    return normalizeLessonCitations(read(repair))
+    return normalizeLessonText(read(repair))
   }
 }

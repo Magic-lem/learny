@@ -1,11 +1,19 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { htmlToText } from '../packages/learny/lib/types/core/html-text.js'
-import { normalizeLessonCitations } from '../packages/learny/lib/types/core/lesson.js'
+import { normalizeLessonCitations, normalizeLessonText } from '../packages/learny/lib/types/core/lesson.js'
 
 test('lesson citations keep one form', () => {
   assert.equal(normalizeLessonCitations('Pod 是最小单元 [sourceId:web-1]，也共享网络 [web-2]。'), 'Pod 是最小单元 [web-1]，也共享网络 [web-2]。')
   assert.equal(normalizeLessonCitations('[sourceId: web-3]'), '[web-3]')
+})
+
+test('a double-escaped lesson is decoded into real line breaks', () => {
+  // One long line with literal \n is what a double-escaped reply looks like.
+  assert.equal(normalizeLessonText('第一段。\\n\\n第二段。[sourceId:web-2]'), '第一段。\n\n第二段。[web-2]')
+  // Text that already has real line breaks keeps them, and a mixed string is not guessed at.
+  assert.equal(normalizeLessonText('第一段。\n第二段。'), '第一段。\n第二段。')
+  assert.equal(normalizeLessonText('第一段。\n第二段。\\n第三段。'), '第一段。\n第二段。\\n第三段。')
 })
 
 test('a fetched HTML page becomes readable prose without its markup', () => {

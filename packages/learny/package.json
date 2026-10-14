@@ -48,6 +48,9 @@
     "node": "^22.19 || >=24"
   },
   "dsh": {
+    "engines": {
+      "dsh": ">=0.2.0-rc.2"
+    },
     "bundle": {
       "patch": "./cordis.patch.yml"
     },
@@ -57,6 +60,47 @@
         "@deepseek-ai/dsh-api-gateway",
         "@deepseek-ai/dsh-client-ui-sidebar-right"
       ]
+    }
+  },
+  "dshWorkshop": {
+    "schema": "omdsh-workshop-package/v1",
+    "type": "plugin",
+    "integration": {
+      "protocol": "harness-profile",
+      "artifact": "packages/learny"
+    },
+    "install": {
+      "mode": "transactional",
+      "adapter": "profile-bundle",
+      "failurePolicy": "generation-rollback",
+      "touchesCurrentBeforeActivation": false
+    },
+    "lifecycle": {
+      "activation": "restart-profile",
+      "dispose": "supported"
+    },
+    "permissions": [
+      "storage:write",
+      "llm:invoke",
+      "web:search",
+      "web:fetch"
+    ],
+    "compatibility": {
+      "dshVersions": [
+        "0.2.0-rc.2"
+      ]
+    },
+    "capability": {
+      "id": "learny.workspace",
+      "kind": "ui",
+      "invocation": "在 dsh 右侧工作台打开 Learny，创建主题学习空间并生成学习路线",
+      "expected": "显示带来源标注的学习路线；打开某一节后生成中文讲解，并把路线、讲解与追问写入本机数据目录"
+    },
+    "evidence": {
+      "install": null,
+      "failureIsolation": null,
+      "hotReload": null,
+      "remove": null
     }
   },
   "peerDependencies": {

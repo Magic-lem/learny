@@ -1,6 +1,18 @@
-# Learny
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/logo-dark.svg">
+    <img src="docs/assets/logo.svg" alt="Learny" width="240">
+  </picture>
+</p>
 
-**把「我大概懂了」变成「我能说明白」。**
+<p align="center"><b>把「我大概懂了」变成「我能说明白」。</b></p>
+
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-4176e6?style=flat-square" alt="MIT License"></a>
+  <img src="https://img.shields.io/badge/node-%E2%89%A524-4176e6?style=flat-square" alt="Node 24+">
+  <img src="https://img.shields.io/badge/dsh-0.2.0--rc.2-4176e6?style=flat-square" alt="dsh 0.2.0-rc.2">
+  <img src="https://img.shields.io/badge/%E6%95%B0%E6%8D%AE-%E6%9C%AC%E5%9C%B0%E4%BC%98%E5%85%88-4176e6?style=flat-square" alt="本地优先">
+</p>
 
 Learny 是一个跑在 [dsh](https://www.npmjs.com/package/@deepseek-ai/dsh)（DeepSeek Harness）右侧工作台的学习插件。给它一个真实项目目录，或者一个知识主题，它会去查资料、写成中文讲解、排出一条能动手验收的学习路线；你每学完一节，留下的判断、实践证据和自己的解释都保存在本机。
 
@@ -30,6 +42,16 @@ Learny 是一个跑在 [dsh](https://www.npmjs.com/package/@deepseek-ai/dsh)（D
 - **继续深究**：就某一节提问，也可以选中讲解里的某一段直接追问那一段，问答挂在节点下。
 - **本地 Markdown 笔记**：随时记录、查找、按你的意图整理成新版，原文与整理版本都能恢复。
 - **联网可计量**：搜索与抓取有来源判重、正文缓存和滚动 24 小时预算，超预算会停下而不是反复付费。
+
+## 产品预览
+
+装在 dsh 里之后，左边照常和模型对话，右边是当前学习空间：一条有关联关系的学习路线，加上你正在做的那一节。
+
+![学习路线与当前任务](docs/assets/workbench.jpg)
+
+打开某一节时，先读这一节的中文讲解，再动手；讲解里推荐顺着「问题 → 机制 → 易错点 → 与实践的关系」读，有不清楚的地方就地追问，也可以选中某一段单独深究。
+
+![本节讲解、阅读要点与继续深究](docs/assets/lesson.jpg)
 
 ## 快速开始
 
@@ -86,15 +108,7 @@ dsh web --patch ./examples/dsh-model.patch.yml
 
 Learny 是一个 dsh 插件，由三部分组成：浏览器里的学习面板（React）、宿主侧的学习服务（Remote API + 领域状态机）、以及本机的 SQLite 持久化。模型、搜索、抓取都通过 dsh 暴露的能力调用，所以换模型或换搜索供应商都不需要改 Learny。
 
-```
-dsh 会话（你选中的模型）
-        │  ctx.llm            ctx.web.search / fetch
-        ▼                            ▼
-  学习服务（路线 / 讲解 / 评价 / 笔记 / 记账）
-        │
-        ▼
-  本机 SQLite + Markdown 笔记
-```
+![架构](docs/assets/architecture.svg)
 
 细节见 **[架构](docs/architecture.md)**，早期架构图见 [architecture/](architecture/)。
 

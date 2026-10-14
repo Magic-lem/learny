@@ -6,6 +6,9 @@ import { normalizeLessonCitations, normalizeLessonText } from '../packages/learn
 test('lesson citations keep one form', () => {
   assert.equal(normalizeLessonCitations('Pod 是最小单元 [sourceId:web-1]，也共享网络 [web-2]。'), 'Pod 是最小单元 [web-1]，也共享网络 [web-2]。')
   assert.equal(normalizeLessonCitations('[sourceId: web-3]'), '[web-3]')
+  // 提示词里写的是「资料id」，模型也照抄过这个前缀。
+  assert.equal(normalizeLessonCitations('控制器维护副本数 [资料id:web-4]。'), '控制器维护副本数 [web-4]。')
+  assert.equal(normalizeLessonCitations('[来源id: web-5][来源:web-6]'), '[web-5][web-6]')
 })
 
 test('a double-escaped lesson is decoded into real line breaks', () => {

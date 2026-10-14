@@ -6,7 +6,7 @@ export { value } from './remote.ts'
 import { useEffect, useId, useRef, useState } from 'react'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import type { KeyboardEvent } from 'react'
+import type { KeyboardEvent, MouseEvent } from 'react'
 import type { ClientRemote } from '@deepseek-ai/dsh-api-gateway/client'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type { Attempt, PracticeKind, StudySnapshot } from '../core/study-types.ts'
@@ -15,6 +15,15 @@ import type {} from './locales.ts'
 
 type Props = { workspaceId: string; sessionId: string; api: ClientRemote['learny']; t: PropsLocale<'learny'>['t']; onNote: (title: string) => Promise<void>; onGenerateCourse: () => Promise<void> }
 type LabelKey = Parameters<Props['t']>[0]
+/**
+ * Turn `[web-1]` into a jump link to that source row so a citation is meaningful
+ * instead of noise; ids this node does not carry stay as plain text.
+ */
+function citeLinks(text: string, known: Set<string>): string {
+  return text
+    .replace(/\[(?:sourceId|source|资料id|来源id|来源)\s*[:：]\s*([a-z0-9-]+)\]/gi, '[$1]')
+    .replace(/\[([a-z0-9-]+)\]/gi, (match, id: string) => known.has(id.toLowerCase()) ? `[${id}](#learny-source-${id.toLowerCase()})` : match)
+}
 /** Practice is recorded the way the task is done, not always as one free-text box. */
 const PRACTICE_FIELDS: Partial<Record<PracticeKind, LabelKey[]>> = {
   command: ['practiceSteps', 'practiceObservation', 'practiceConclusion'],
@@ -42,6 +51,7 @@ export function StudyWorkbench({workspaceId,sessionId,api,t,onNote,onGenerateCou
   const materials=snapshot?.materials??[]
   const lesson=node?(snapshot?.lessons?.[node.id]??node.lesson??''):''
   const deepDives=(snapshot?.deepDives??[]).filter(item=>item.nodeId===node?.id)
+  const cited=new Set(node?.sourceIds??[])
   const lessonBusy=lessonState.status==='loading'
   const practiceFields=PRACTICE_FIELDS[node?.practiceKind??'mixed']??[]
   const practiceText=practiceFields.map((key,index)=>practice[index]?.trim()?`${t(key)}：\n${practice[index].trim()}`:'').filter(Boolean).join('\n\n')
@@ -90,6 +100,13 @@ export function StudyWorkbench({workspaceId,sessionId,api,t,onNote,onGenerateCou
     const selection=typeof window==='undefined'?null:window.getSelection()
     const text=selection?.toString().trim()??''
     setPick(text&&selection?.anchorNode&&lessonRef.current?.contains(selection.anchorNode)?text.slice(0,600):'')
+  }
+  /** A citation jumps to its source row; expand that row so the link is visible. */
+  function openCited(event:MouseEvent<HTMLDivElement>){
+    const anchor=(event.target as HTMLElement).closest('a[href^="#learny-source-"]')
+    if(!anchor)return
+    const target=document.getElementById(anchor.getAttribute('href')!.slice(1))
+    if(target instanceof HTMLDetailsElement)target.open=true
   }
   async function act(action:'prediction'|'reading'|'hint'|'startPractice'|'practice'|'explanation',text:string){
     if(!attempt)return
@@ -154,7 +171,7 @@ export function StudyWorkbench({workspaceId,sessionId,api,t,onNote,onGenerateCou
           {node.briefing&&<div className="briefing"><span className="section-label">{t('nodeBriefing')}</span><p>{node.briefing}</p>{node.sourceIds.length>0&&<p className="muted">{t('nodeMaterials',{count:node.sourceIds.length})}</p>}</div>}
           <div className="prompt"><p>{attempt.retry?node.retryPrediction:node.prediction}</p></div><label>{t('yourPrediction')}<textarea rows={7} value={draft} placeholder={t('predictionPlaceholder')} disabled={busy} onChange={e=>edit(e.target.value)}/></label><div className="task-actions"><button className="primary" disabled={busy||!draft.trim()} onClick={()=>{void run(()=>act('prediction',draft))}}>{t('savePrediction')}</button></div></>}
         {attempt.stage==='reading'&&<><p>{t('readingGuide')}</p>
-        {lesson?<div className="lesson" ref={lessonRef} onMouseUp={capturePick}><span className="section-label">{t('lessonTitle')}</span><div className="prose"><Markdown remarkPlugins={[remarkGfm]}>{lesson}</Markdown></div>
+        {lesson?<div className="lesson" ref={lessonRef} onMouseUp={capturePick} onClick={openCited}><span className="section-label">{t('lessonTitle')}</span><div className="prose"><Markdown remarkPlugins={[remarkGfm]}>{citeLinks(lesson,cited)}</Markdown></div>
           <div className="row between lesson-foot"><small className="muted">{t('lessonOnDemand')}</small><button className="quiet" disabled={busy||lessonBusy} onClick={()=>{void loadLesson(true)}}><Icon name="refresh" />{t('lessonRewrite')}</button></div></div>
           :<div className="lesson lesson-empty" role="status">{lessonState.status==='error'?<><p className="status-error">{t('lessonFailed',{message:lessonState.error??''})}</p><button disabled={busy} onClick={()=>{void loadLesson(false)}}>{t('lessonRetry')}</button></>
             :<><p className="muted">{t('lessonLoading')}</p>{!lessonBusy&&<button disabled={busy} onClick={()=>{void loadLesson(false)}}>{t('lessonRetry')}</button>}</>}</div>}
@@ -163,12 +180,12 @@ export function StudyWorkbench({workspaceId,sessionId,api,t,onNote,onGenerateCou
         <div className="deepen"><span className="section-label">{t('deepenTitle')}</span><p className="muted">{t('deepenIntro')}</p>
           <label>{t('deepenLabel')}<textarea rows={2} value={question} placeholder={t('deepenPlaceholder')} disabled={busy} onChange={e=>setQuestion(e.target.value)}/></label>
           <div className="task-actions"><button disabled={busy||!question.trim()} onClick={()=>{void askFollowUp(question)}}>{t('deepenAction')}</button></div>
-          {deepDives.map(dive=><details key={dive.id} className="dive" open><summary>{dive.question}</summary><div className="prose"><Markdown remarkPlugins={[remarkGfm]}>{dive.answer}</Markdown></div></details>)}</div>
+          {deepDives.map(dive=><details key={dive.id} className="dive" open><summary>{dive.question}</summary><div className="prose"><Markdown remarkPlugins={[remarkGfm]}>{citeLinks(dive.answer,cited)}</Markdown></div></details>)}</div>
         {!!node.sourceIds.length&&<><p className="muted originals-hint">{t('sourceOriginalHint')}</p>
         {node.sourceIds.map(id=>{
           const source=materials.find(s=>s.id===id)
           const read=attempt.readingIds.includes(id)
-          return <details key={id} className="source"><summary><span>{source?.title??id}</span><span className={`source-state ${read?'is-read':''}`}>{read?t('readRecorded'):t('toRead')}</span></summary><div className="source-content">
+          return <details key={id} id={`learny-source-${id}`} className="source"><summary><span>{source?.title??id}</span><span className={`source-state ${read?'is-read':''}`}>{read?t('readRecorded'):t('toRead')}</span></summary><div className="source-content">
             {source&&<a href={source.url} target="_blank" rel="noreferrer" onClick={()=>{if(!read)void run(()=>act('reading',id))}}>{source.path}<Icon name="arrow" /></a>}
             <div className="row between source-footer">{source&&<small title={source.sha256}>{t('sourceVersion',{version:source.sha256.slice(0,12)})}</small>}{!read&&<button disabled={busy} onClick={()=>{void run(()=>act('reading',id))}}>{t('openMaterial')}<Icon name="check" /></button>}</div></div></details>
         })}</>}<div className="task-actions"><span className="muted">{t('readingProgress',{read:node.sourceIds.filter(id=>attempt.readingIds.includes(id)).length,total:node.sourceIds.length})}</span><button className="primary" disabled={busy||!lesson} onClick={()=>{void run(()=>act('startPractice',''))}}>{t('beginPractice')}</button></div></>}

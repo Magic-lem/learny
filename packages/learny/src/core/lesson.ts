@@ -4,9 +4,9 @@ import { readPage, type PageHit } from './course-builder.ts'
 
 const messageOf = (error: unknown) => error instanceof Error ? error.message.slice(0, 500) : String(error).slice(0, 500)
 
-/** Models cite as `[sourceId:web-1]` about as often as `[web-1]`; keep one form. */
+/** Models cite as `[sourceId:web-1]`, `[资料id:web-1]` or `[web-1]`; keep one form. */
 export function normalizeLessonCitations(lesson: string): string {
-  return lesson.replace(/\[sourceId:\s*([a-z0-9-]+)\]/gi, '[$1]')
+  return lesson.replace(/\[(?:sourceId|source|资料id|来源id|来源)\s*[:：]\s*([a-z0-9-]+)\]/gi, '[$1]')
 }
 
 /**

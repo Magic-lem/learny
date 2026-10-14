@@ -185,6 +185,10 @@
 .learny .dive { border-top: 1px solid var(--ly-line-soft); padding-top: 8px; margin-top: 4px; }
 .learny .dive summary { font-size: var(--ly-fs-meta); color: var(--ly-ink-2); }
 .learny .dive .prose { margin-top: 8px; font-size: var(--ly-fs-content); line-height: 1.8; max-width: 78ch; overflow-wrap: anywhere; }
+/* A citation is a jump link to the source row, not a stray bracket. */
+.learny :is(.lesson,.dive) .prose a[href^="#learny-source-"] { font: var(--ly-fs-micro)/1 ui-monospace,monospace; color: var(--ly-ink-2); background: var(--ly-soft); border-radius: 4px; padding: 1px 4px; text-decoration: none; }
+.learny :is(.lesson,.dive) .prose a[href^="#learny-source-"]:hover { color: var(--ly-blue); }
+.learny details[id^="learny-source-"] { scroll-margin-top: 72px; }
 .learny .key-points ol { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 8px; }
 .learny .key-points li p { margin: 0; font-size: var(--ly-fs-content); line-height: 1.7; overflow-wrap: anywhere; }
 .learny .key-points li small { color: var(--ly-muted); font-size: var(--ly-fs-micro); }

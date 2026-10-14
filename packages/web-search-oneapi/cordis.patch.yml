@@ -1,0 +1,4 @@
+# Installing registers a provider. Selecting it belongs to the user's profile.
+- insert:
+    - id: web-search-oneapi
+      name: dsh-web-search-oneapi

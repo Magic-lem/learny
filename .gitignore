@@ -1,0 +1,13 @@
+node_modules/
+.env
+.env.*
+artifacts/
+.test-data/
+packages/*/lib/
+*.tsbuildinfo
+.patch-work/
+# Local working notes: hand-off context kept out of the published repository.
+CONTEXT_HANDOFF.txt
+# Generator receipts record local absolute paths; the artifacts they describe stay.
+*.receipt.json
+*.visual-check.json

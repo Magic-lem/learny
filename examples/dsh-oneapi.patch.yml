@@ -1,0 +1,20 @@
+# Apply this overlay to the dsh profile, not to Learny.
+# Export LEARNY_ONEAPI_URL, LEARNY_ONEAPI_KEY and LEARNY_ONEAPI_MODEL privately.
+# This is for an OpenAI-compatible OneAPI gateway. Keep the key out of this file.
+- id: llm-pi-ai
+  config:
+    providers:
+      learny-oneapi:
+        displayName: OneAPI gateway
+        api: openai-completions
+        baseURL: !!js process.env.LEARNY_ONEAPI_URL
+        apiKeyEnv: LEARNY_ONEAPI_KEY
+        models:
+          - id: !!js process.env.LEARNY_ONEAPI_MODEL
+            contextWindow: 65536
+            maxTokens: 4096
+            input: [text]
+- id: agent-default-model
+  config:
+    provider: learny-oneapi
+    model: !!js process.env.LEARNY_ONEAPI_MODEL

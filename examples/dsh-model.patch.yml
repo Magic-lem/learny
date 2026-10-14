@@ -1,0 +1,20 @@
+# Apply this overlay to the dsh profile, not to Learny.
+# Export LEARNY_DEMO_URL, LEARNY_DEMO_TOKEN and LEARNY_DEMO_MODEL privately.
+# This example expects an OpenAI-compatible chat/completions endpoint.
+- id: llm-pi-ai
+  config:
+    providers:
+      learny-demo:
+        displayName: Learny demo model
+        api: openai-completions
+        baseURL: !!js process.env.LEARNY_DEMO_URL
+        apiKeyEnv: LEARNY_DEMO_TOKEN
+        models:
+          - id: !!js process.env.LEARNY_DEMO_MODEL
+            contextWindow: 65536
+            maxTokens: 4096
+            input: [text]
+- id: agent-default-model
+  config:
+    provider: learny-demo
+    model: !!js process.env.LEARNY_DEMO_MODEL

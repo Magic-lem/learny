@@ -1,0 +1,17 @@
+# dsh profile overlay for the separate OneAPI WebSearchProvider adapter.
+# The model must be a search-enabled OneAPI route. DeepSeek-V4-Pro was verified
+# with Responses web_search; other deployments should set their own model ID.
+- id: web
+  name: '@deepseek-ai/dsh-web'
+  config:
+    searchProvider: oneapi
+    fetchProvider: http
+- id: web-search-oneapi
+  name: dsh-web-search-oneapi
+  config:
+    api: responses
+    baseURL: !!js process.env.ONEAPI_SEARCH_BASE_URL ?? process.env.LEARNY_ONEAPI_URL ?? ''
+    model: !!js process.env.ONEAPI_SEARCH_MODEL ?? process.env.LEARNY_ONEAPI_SEARCH_MODEL ?? ''
+    apiKeyEnv: !!js process.env.ONEAPI_SEARCH_KEY_ENV ?? 'ONEAPI_API_KEY'
+    headersJson: !!js process.env.ONEAPI_HEADERS_JSON
+    timeoutMs: 180000

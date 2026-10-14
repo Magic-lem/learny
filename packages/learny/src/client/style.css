@@ -1,0 +1,347 @@
+/* Learny tokens. 颜色、字号、圆角都取自 dsh 平台 token，面板才会跟宿主的主题与字号设置一起变；
+   宿主没有定义这些变量时（独立运行、测试）回退到同一套色值与尺寸。
+   注意：dsh 的背景层只往上叠，深色下 layer-1 比底更亮，所以输入面比面板底更亮而不是更暗。 */
+.learny {
+  /* 字号：面板正文取次级，主要输入与阅读面取正文级，两者都跟随宿主的字号设置。 */
+  --ly-fs-body: var(--dsh-content-font-size-secondary, 13px);
+  --ly-fs-content: var(--dsh-content-font-size, 14px);
+  --ly-fs-meta: 12px;
+  --ly-fs-micro: 11px;
+
+  /* 表面：面板底、输入面、代码面各一档。 */
+  --ly-paper: var(--dsw-alias-bg-base, light-dark(#ffffff, #151517));
+  --ly-bg: var(--dsw-alias-bg-layer-1, light-dark(#f5f7fb, #232324));
+  --ly-field: var(--dsw-alias-bg-layer-1, light-dark(#ffffff, #232324));
+  --ly-code-bg: var(--dsw-alias-markdown-code-block, light-dark(#f9fafb, #1b1b1c));
+  --ly-soft: var(--dsw-alias-interactive-bg-hover, light-dark(rgba(38, 49, 72, .06), rgba(255, 255, 255, .08)));
+
+  /* 文字：主、次、三级。宿主还有一档 caption，浅色下只有 1.99:1，不能承载要读的信息，这里不使用。 */
+  --ly-ink: var(--dsw-alias-label-primary, light-dark(#0f1115, #f9fafb));
+  --ly-ink-2: var(--dsw-alias-label-secondary, light-dark(#61666b, #cfd3d6));
+  --ly-muted: var(--dsw-alias-label-tertiary, light-dark(#81858c, #adb2b8));
+
+  /* 线：三档，全部用宿主的半透明描边。 */
+  --ly-line-soft: var(--dsw-alias-border-l1, light-dark(rgba(0, 0, 0, .04), rgba(255, 255, 255, .06)));
+  --ly-line: var(--dsw-alias-border-l2, light-dark(rgba(0, 0, 0, .1), rgba(255, 255, 255, .12)));
+  --ly-line-strong: var(--dsw-alias-border-l4, light-dark(rgba(0, 0, 0, .16), rgba(255, 255, 255, .2)));
+
+  /* 语义色：主操作沿用宿主的蓝色动作填充。 */
+  --ly-blue: var(--dsw-alias-link, light-dark(#4176e6, #7aaaff));
+  --ly-button: var(--dsw-alias-button-info-fill, #4176e6);
+  --ly-button-text: var(--dsw-alias-label-primary-foreground, #ffffff);
+  --ly-blue-soft: color-mix(in srgb, var(--ly-blue) 12%, transparent);
+  --ly-green: var(--dsw-alias-state-success-primary, light-dark(#16a34a, #22c55e));
+  --ly-green-soft: color-mix(in srgb, var(--ly-green) 12%, transparent);
+  --ly-error: var(--dsw-alias-state-error-primary, light-dark(#dc2626, #f25a5a));
+  --ly-warning: var(--dsw-alias-state-warn-label, light-dark(#b45309, #f59e0b));
+
+  /* 圆角与控件高度：与宿主的按钮、输入框同一套。控件用固定高度，跟随字号的是文字。 */
+  --ly-radius: var(--dsw-radius-sm, 8px);
+  --ly-radius-lg: var(--dsw-radius-md, 12px);
+  --ly-control-h: 28px;
+  --ly-field-h: 32px;
+  --ly-space-1: 4px; --ly-space-2: 8px; --ly-space-3: 12px; --ly-space-4: 16px; --ly-space-5: 24px;
+  container: learny / inline-size;
+  height: 100%; overflow: auto; overscroll-behavior: contain;
+  background: var(--ly-paper); color: var(--ly-ink); color-scheme: inherit;
+  font-family: var(--dsw-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif);
+  font-size: var(--ly-fs-body);
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+.learny *, .learny *::before, .learny *::after { box-sizing: border-box; }
+.learny [hidden] { display: none !important; }
+.learny .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; clip-path: inset(50%); overflow: hidden; white-space: nowrap; border: 0; }
+.learny .learny-shell { max-width: 1280px; margin: auto; min-height: 100%; }
+.learny :is(h1,h2,h3,p,ol,ul) { margin: 0; }
+.learny h1 { font-size: var(--ly-fs-body); font-weight: 500; overflow-wrap: anywhere; }
+.learny h2 { font-size: var(--ly-fs-body); line-height: 1.5; font-weight: 500; overflow-wrap: anywhere; }
+.learny h3 { font-size: var(--ly-fs-body); line-height: 1.6; font-weight: 500; overflow-wrap: anywhere; }
+/* 需要读的次级文字用 secondary：宿主浅色的 tertiary 在白底上只有 3.71:1，达不到 AA。 */
+.learny .muted { color: var(--ly-ink-2); font-size: var(--ly-fs-meta); line-height: 1.7; }
+.learny .caption { color: var(--ly-muted); font-size: var(--ly-fs-micro); line-height: 1.6; }
+.learny .learny-icon { flex: 0 0 16px; width: 16px; height: 16px; vertical-align: middle; }
+.learny .row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.learny .between { justify-content: space-between; }
+.learny :is(button,input,select,textarea) { font: inherit; color: inherit; }
+.learny button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: var(--ly-control-h); padding: 4px 10px; background: transparent; color: var(--ly-ink); border: 1px solid var(--ly-line); border-radius: var(--ly-radius); cursor: pointer; font-size: var(--ly-fs-meta); line-height: 1.5; transition: background-color 120ms ease, border-color 120ms ease; }
+.learny button:hover:not(:disabled) { background: var(--ly-soft); }
+.learny button:disabled { opacity: .4; cursor: not-allowed; }
+.learny :is(button,input,textarea,select,summary,a,[tabindex]):focus-visible { outline: 2px solid var(--ly-blue); outline-offset: 2px; }
+.learny .primary { min-height: 36px; padding: 0 14px; color: var(--ly-button-text); background: var(--ly-button); border-color: var(--ly-button); border-radius: var(--ly-radius-lg); font-size: var(--ly-fs-content); font-weight: 500; }
+.learny .primary:hover:not(:disabled) { background: color-mix(in srgb, var(--ly-button) 88%, #000); }
+.learny .quiet { background: transparent; border-color: transparent; color: var(--ly-ink-2); }
+.learny .quiet:hover:not(:disabled) { background: var(--ly-soft); color: var(--ly-ink); }
+.learny :is(input,select,textarea) { width: 100%; min-width: 0; padding: 6px 10px; background: var(--ly-field); color: var(--ly-ink); border: 1px solid var(--ly-line-strong); border-radius: var(--ly-radius-lg); font-size: var(--ly-fs-content); }
+.learny :is(input,select) { min-height: var(--ly-field-h); }
+.learny textarea { resize: vertical; line-height: 1.7; }
+.learny :is(input,textarea)::placeholder { color: var(--ly-muted); opacity: 1; }
+.learny select { padding-right: 24px; text-overflow: ellipsis; }
+.learny label { display: grid; gap: 6px; font-size: 12px; font-weight: 550; }
+.learny label :is(input,select,textarea) { font-weight: 400; }
+.learny .workspace-chrome { position: sticky; top: 0; z-index: 2; background: var(--ly-paper); }
+.learny .workspace-header { display: flex; align-items: center; gap: 10px; padding: 8px 14px; border-bottom: 1px solid var(--ly-line); }
+.learny .brand { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.learny .brand svg { width: 14px; height: 14px; flex-basis: 14px; color: var(--ly-blue); }
+.learny .space-select { flex: 1; max-width: 300px; min-width: 0; }
+.learny .space-select select { background: var(--ly-field); }
+.learny .new-space { margin-left: auto; white-space: nowrap; }
+.learny .workspace-nav { display: flex; align-items: center; gap: 16px; padding: 0 14px; border-bottom: 1px solid var(--ly-line); }
+.learny .workspace-nav button { position: relative; min-height: 32px; padding: 6px 0; background: none; border: 0; border-radius: 0; color: var(--ly-ink-2); font-size: var(--ly-fs-meta); }
+.learny .workspace-nav button[aria-pressed=true] { color: var(--ly-ink); font-weight: 500; }
+.learny .workspace-nav button[aria-pressed=true]::after { content: ''; position: absolute; height: 2px; bottom: -1px; left: 0; right: 0; background: var(--ly-blue); }
+.learny .count { display: inline-grid; place-items: center; min-width: 16px; height: 15px; padding: 0 4px; border-radius: 4px; font-size: var(--ly-fs-micro); background: var(--ly-soft); color: var(--ly-muted); }
+.learny .space-form { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; padding: 20px; background: var(--ly-bg); border-bottom: 1px solid var(--ly-line); }
+.learny .form-heading, .learny .full-width { grid-column: 1/-1; }
+.learny .form-heading p { margin-top: 4px; }
+.learny .setup-check { margin: 16px 20px 0; padding: 16px 0; border-top: 1px solid var(--ly-line); border-bottom: 1px solid var(--ly-line); }
+.learny .setup-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.learny .setup-heading h2 { margin-top: 2px; font-size: 16px; }
+.learny .setup-heading .muted { margin-top: 4px; max-width: 72ch; }
+.learny .setup-heading .quiet { flex-shrink: 0; min-height: 30px; padding: 5px 8px; }
+.learny .setup-list { display: grid; margin-top: 14px; border-top: 1px solid var(--ly-line); }
+.learny .setup-row { display: grid; grid-template-columns: minmax(100px, .28fr) auto minmax(0, 1fr); align-items: baseline; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--ly-line); }
+.learny .setup-row > span { font-weight: 550; }
+.learny .setup-row strong { font-size: 12px; font-weight: 600; white-space: nowrap; }
+.learny .setup-row strong.ready { color: var(--ly-green); }
+.learny .setup-row strong.pending { color: var(--ly-warning); }
+.learny .setup-row p, .learny .setup-footnote { color: var(--ly-ink-2); font-size: 12px; line-height: 1.7; }
+.learny .setup-footnote { margin-top: 12px; max-width: 90ch; }
+/* 学习目标是常驻提示带：用一层安静的表面把自己和正文分开，而不是把文字调暗。 */
+.learny .goal { margin: 0; padding: 0 14px; border-bottom: 1px solid var(--ly-line); background: var(--ly-bg); color: var(--ly-ink-2); }
+.learny .goal summary { display: flex; align-items: baseline; justify-content: flex-start; gap: 8px; padding: 6px 0; font-size: var(--ly-fs-micro); font-weight: 400; list-style: none; }
+.learny .goal summary::-webkit-details-marker { display: none; }
+.learny .goal summary::before { content: '›'; flex-shrink: 0; font-size: var(--ly-fs-body); line-height: 1; color: var(--ly-muted); }
+.learny .goal[open] summary::before { transform: rotate(90deg); }
+.learny .goal[open] summary span:last-of-type { display: none; }
+.learny .goal summary span:first-of-type { flex-shrink: 0; color: var(--ly-muted); }
+.learny .goal summary span:last-of-type { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ly-ink-2); }
+.learny .goal > p { padding: 0 0 10px; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--ly-ink-2); }
+.learny .material-path { font-family: ui-monospace, monospace; font-size: var(--ly-fs-meta); }
+.learny .study, .learny .notes-workbench { padding: 14px; }
+.learny .study { display: grid; align-content: start; gap: 12px; }
+.learny .section-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.learny .section-heading > div { min-width: 0; }
+.learny .section-heading > button { flex-shrink: 0; white-space: nowrap; }
+.learny .section-heading p { margin-top: 2px; max-width: 78ch; }
+
+/* 页头只有一层：课程名作为标题上方的小字，右侧是路线、笔记、刷新三个动作。
+   flex-wrap 让动作在窄面板里换行而不是把标题挤没。 */
+.learny .task-head { display: flex; align-items: flex-start; flex-wrap: wrap; gap: 8px 12px; padding-bottom: 10px; border-bottom: 1px solid var(--ly-line); }
+.learny .task-head__title { flex: 1 1 220px; min-width: 0; }
+.learny .task-course { display: block; color: var(--ly-muted); font-size: var(--ly-fs-micro); line-height: 1.5; overflow-wrap: anywhere; }
+.learny .task-head h2 { font-size: var(--ly-fs-content); font-weight: 500; line-height: 1.45; }
+.learny .task-head__actions { display: flex; align-items: center; flex-wrap: wrap; gap: 2px; margin-left: auto; }
+.learny .route-chevron { display: inline-block; color: var(--ly-muted); line-height: 1; transition: transform 120ms ease; }
+.learny .route-toggle[aria-expanded=true] .route-chevron { transform: rotate(180deg); }
+.learny .course-outline { padding-bottom: 4px; }
+.learny .course-status { color: var(--ly-ink-2); font-size: var(--ly-fs-meta); }
+.learny .course-empty { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 0 10px; border-bottom: 1px solid var(--ly-line); }
+.learny .course-empty p { margin-top: 2px; max-width: 68ch; }
+
+.learny .course-outline > p { margin-bottom: 6px; }
+.learny .node-map { display: grid; }
+.learny .node-map button { display: flex; align-items: center; justify-content: flex-start; text-align: left; min-width: 0; padding: 8px 10px; gap: 12px; border: 0; border-bottom: 1px solid var(--ly-line); border-radius: 0; background: transparent; }
+.learny .node-map button.active { background: var(--ly-blue-soft); }
+.learny .node-info { display: grid; gap: 1px; min-width: 0; flex: 1; }
+.learny .node-info strong { font-size: var(--ly-fs-body); font-weight: 500; overflow-wrap: anywhere; }
+.learny .node-state, .learny .node-info small { font-size: var(--ly-fs-micro); color: var(--ly-muted); line-height: 1.6; }
+.learny .node-state { flex-shrink: 0; }
+.learny .node-selected { width: 16px; flex-shrink: 0; color: var(--ly-blue); }
+.learny .task { min-width: 0; }
+
+/* 进度：3px 细条加一行说明。原来的圆圈步骤条占一整行，还把当前步重复写了一遍。
+   说明文字用 nowrap + 省略号，阶段切换时行高不变。 */
+.learny .progress { display: flex; align-items: center; gap: 10px; padding: 8px 0; }
+.learny .progress-track { display: flex; flex: 1 1 60px; gap: 3px; min-width: 48px; margin: 0; padding: 0; list-style: none; }
+.learny .progress-track li { flex: 1; height: 3px; border-radius: 2px; background: var(--ly-line); }
+.learny .progress-track li.done { background: var(--ly-blue); }
+.learny .progress-track li.cur { background: var(--ly-blue); opacity: .5; }
+.learny .progress-label { flex: 0 1 auto; display: flex; align-items: baseline; gap: 6px; min-width: 0; font-size: var(--ly-fs-micro); color: var(--ly-ink-2); }
+.learny .progress-label strong { flex-shrink: 0; font-weight: 500; color: var(--ly-ink); }
+.learny .progress-label span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* 状态行常驻并预留一行高度：忙碌与错误提示出现时不再把下面的内容顶下去。 */
+.learny .status-line { display: flex; align-items: center; gap: 8px; min-height: 1.6em; margin: -4px 0; font-size: var(--ly-fs-meta); color: var(--ly-ink-2); overflow-wrap: anywhere; }
+.learny .status-error { color: var(--ly-error); }
+.learny .task > .notice { margin-bottom: 12px; }
+.learny .task-grid { display: grid; border-top: 1px solid var(--ly-line); }
+.learny .task-main { display: grid; align-content: start; gap: 12px; min-width: 0; padding: 14px 0; }
+.learny .prompt { font-size: var(--ly-fs-content); line-height: 1.7; max-width: 76ch; overflow-wrap: anywhere; }
+.learny .briefing { border: 1px solid var(--ly-line); border-left: 2px solid var(--ly-blue); border-radius: var(--ly-radius-lg); padding: 10px 12px; background: var(--ly-bg); }
+.learny .briefing p { margin: 6px 0 0; font-size: var(--ly-fs-content); line-height: 1.7; max-width: 76ch; overflow-wrap: anywhere; }
+.learny .briefing .muted { margin-top: 6px; font-size: var(--ly-fs-meta); }
+.learny .key-points { border: 1px solid var(--ly-line); border-radius: var(--ly-radius-lg); padding: 10px 12px; }
+.learny .lesson { border: 1px solid var(--ly-line); border-radius: var(--ly-radius-lg); padding: 12px 14px; background: var(--ly-paper); }
+.learny .lesson .prose { margin-top: 8px; font-size: var(--ly-fs-content); line-height: 1.8; max-width: 78ch; overflow-wrap: anywhere; }
+.learny .lesson .prose :is(h1,h2,h3,h4) { margin-top: 14px; font-size: var(--ly-fs-content); }
+.learny .originals-hint { margin: 4px 0 0; font-size: var(--ly-fs-micro); }
+.learny .lesson-foot { margin-top: 10px; }
+.learny .lesson-empty { display: grid; gap: 8px; justify-items: start; }
+.learny .pick-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; border: 1px solid var(--ly-line); border-left: 2px solid var(--ly-warning); border-radius: var(--ly-radius-lg); padding: 8px 10px; font-size: var(--ly-fs-micro); }
+.learny .deepen { border: 1px solid var(--ly-line); border-radius: var(--ly-radius-lg); padding: 10px 12px; display: grid; gap: 8px; }
+.learny .deepen textarea { width: 100%; }
+.learny .deepen .task-actions { margin-top: 0; }
+.learny .dive { border-top: 1px solid var(--ly-line-soft); padding-top: 8px; margin-top: 4px; }
+.learny .dive summary { font-size: var(--ly-fs-meta); color: var(--ly-ink-2); }
+.learny .dive .prose { margin-top: 8px; font-size: var(--ly-fs-content); line-height: 1.8; max-width: 78ch; overflow-wrap: anywhere; }
+.learny .key-points ol { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 8px; }
+.learny .key-points li p { margin: 0; font-size: var(--ly-fs-content); line-height: 1.7; overflow-wrap: anywhere; }
+.learny .key-points li small { color: var(--ly-muted); font-size: var(--ly-fs-micro); }
+.learny .practice-fields { display: grid; gap: 10px; }
+.learny .practice-fields textarea { width: 100%; }
+.learny .task-actions .muted { font-size: var(--ly-fs-micro); }
+.learny .task-main label { font-size: var(--ly-fs-body); font-weight: 500; }
+.learny .task-main textarea { min-height: 150px; padding: 10px; }
+.learny .task-actions { display: flex; align-items: center; justify-content: flex-end; gap: 12px; flex-wrap: wrap; padding-top: 2px; }
+.learny .task-actions > .muted { margin-right: auto; }
+.learny .task-support { min-width: 0; border-top: 1px solid var(--ly-line); background: transparent; align-self: start; }
+.learny .support-tabs { display: flex; gap: 14px; padding: 0 14px; border-bottom: 1px solid var(--ly-line); }
+.learny .support-tabs button { position: relative; min-height: 32px; padding: 6px 0; border: 0; border-radius: 0; background: none; color: var(--ly-ink-2); font-size: var(--ly-fs-meta); white-space: nowrap; }
+.learny .support-tabs button[aria-selected=true] { color: var(--ly-ink); font-weight: 500; }
+.learny .support-tabs button[aria-selected=true]::after { content: ''; position: absolute; bottom: -1px; left: 0; right: 0; height: 2px; background: var(--ly-blue); }
+/* 右列定高、内部滚动：验收标准与导师对话内容长短不同，定高后切换标签不再推动下方内容。
+   导师面板自己管线程滚动与自动滚底，所以这里换成 flex 单列，只让线程那一行伸缩。 */
+.learny .support-content { display: grid; align-content: start; gap: 14px; height: 25em; padding: 14px; overflow: auto; }
+.learny .support-content:has(.tutor-panel) { display: flex; flex-direction: column; overflow: hidden; }
+.learny .tutor-panel { flex: 1 1 auto; display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto; gap: 10px; min-height: 0; }
+.learny .support-section { display: grid; gap: 6px; }
+.learny .criteria-list { display: grid; gap: 10px; list-style: none; padding: 0; }
+.learny .criteria-list li { display: flex; gap: 7px; font-size: var(--ly-fs-meta); line-height: 1.65; color: var(--ly-ink-2); }
+.learny .criteria-list li > span { flex-shrink: 0; color: var(--ly-muted); }
+.learny .hint-section { border-top: 1px solid var(--ly-line); padding-top: 12px; }
+.learny .hint-section button { justify-self: start; }
+.learny details { min-width: 0; font-size: var(--ly-fs-body); }
+.learny summary { display: flex; align-items: center; justify-content: space-between; gap: 8px; cursor: pointer; min-height: 30px; padding: 5px 0; font-size: var(--ly-fs-meta); font-weight: 500; }
+.learny summary::marker { color: var(--ly-muted); }
+.learny details[open] > summary { margin-bottom: 6px; }
+.learny .record { border-top: 1px solid var(--ly-line); }
+.learny .record p { margin: 10px 0; }
+.learny .preserve { white-space: pre-wrap; overflow-wrap: anywhere; }
+.learny pre { max-width: 100%; margin: 0; padding: 12px; border: 1px solid var(--ly-line); border-radius: var(--ly-radius-lg); overflow: auto; font: 12px/1.65 ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace; white-space: pre; background: var(--ly-code-bg); color: var(--ly-ink-2); }
+.learny .record pre, .learny .comparison pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+.learny .source { border: 1px solid var(--ly-line); border-radius: var(--ly-radius-lg); overflow: hidden; }
+.learny .source summary { padding: 8px 10px; }
+.learny .source summary > span:first-child { margin-right: 12px; }
+.learny .source-state { font-size: var(--ly-fs-micro); color: var(--ly-muted); white-space: nowrap; }
+.learny .source-state.is-read { color: var(--ly-green); }
+.learny .source-content { padding: 0 10px 10px; }
+.learny .source a { display: flex; align-items: center; gap: 6px; color: var(--ly-blue); font: var(--ly-fs-micro)/1.7 ui-monospace,monospace; overflow-wrap: anywhere; }
+.learny .source pre { margin-top: 8px; max-height: 400px; }
+.learny .source-footer { margin-top: 8px; }
+.learny .source small { color: var(--ly-muted); font-size: var(--ly-fs-micro); overflow-wrap: anywhere; }
+.learny .notice { padding: 10px; border: 1px solid var(--ly-line); border-radius: var(--ly-radius); background: var(--ly-bg); font-size: var(--ly-fs-meta); line-height: 1.7; overflow-wrap: anywhere; }
+.learny .learny-shell > .notice { margin: 10px 14px; }
+.learny .notice.error { color: var(--ly-error); background: var(--ly-bg); }
+.learny .notice button { margin-top: 6px; }
+.learny .notice :is(ol,ul) { padding-left: 20px; }
+.learny .evaluation-summary { padding-bottom: 12px; border-bottom: 1px solid var(--ly-line); }
+.learny .section-label { color: var(--ly-muted); font-size: var(--ly-fs-micro); }
+.learny .evaluation-summary h3 { font-size: var(--ly-fs-content); font-weight: 500; margin: 2px 0 6px; }
+.learny .evaluation-summary.independent h3 { color: var(--ly-green); }
+.learny .criterion { padding-bottom: 12px; border-bottom: 1px solid var(--ly-line); }
+.learny .criterion > p { margin: 6px 0; }
+.learny .criterion-state { color: var(--ly-warning); font-size: var(--ly-fs-micro); white-space: nowrap; }
+.learny .criterion-state.met { color: var(--ly-green); }
+.learny blockquote { border-left: 2px solid var(--ly-line); padding-left: 12px; margin: 10px 0; color: var(--ly-ink-2); white-space: pre-wrap; }
+.learny .attempt-history { border-top: 1px solid var(--ly-line); }
+.learny .history-toolbar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 12px; padding: 8px 0; }
+.learny .history-toolbar label { display: flex; align-items: center; white-space: nowrap; }
+.learny .history-toolbar select { width: auto; }
+.learny .table-scroll { overflow: auto; }
+.learny .history-table { width: 100%; min-width: 480px; border-collapse: collapse; font-size: var(--ly-fs-meta); }
+.learny .history-table th { text-align: left; font-size: var(--ly-fs-micro); font-weight: 500; color: var(--ly-ink-2); background: var(--ly-bg); }
+.learny .history-table :is(th,td) { padding: 8px 10px; border-bottom: 1px solid var(--ly-line); vertical-align: top; }
+.learny .history-table tr[aria-selected=true] { background: var(--ly-blue-soft); }
+.learny .history-table small { display: block; font-size: var(--ly-fs-micro); color: var(--ly-muted); }
+.learny .history-table time { white-space: nowrap; color: var(--ly-muted); }
+.learny .history-table button { min-height: 24px; padding: 2px 8px; white-space: nowrap; }
+.learny .history-table .error-text, .learny .record-status.remedial { color: var(--ly-error); }
+.learny .record-status.independent { color: var(--ly-green); }
+.learny .record-status.assisted { color: var(--ly-warning); }
+.learny .table-empty { text-align: center; color: var(--ly-ink-2); }
+.learny .pagination { display: flex; align-items: center; justify-content: flex-end; gap: 8px; padding-top: 12px; }
+.learny .pagination span { margin-right: auto; color: var(--ly-ink-2); }
+.learny .tutor-thread { display: grid; align-content: start; gap: 14px; min-height: 0; max-height: none; overflow: auto; scrollbar-gutter: stable; }
+.learny .tutor-message { min-width: 0; padding: 0 0 12px; border-bottom: 1px solid var(--ly-line); font-size: var(--ly-fs-meta); line-height: 1.7; color: var(--ly-ink-2); }
+.learny .tutor-message header { display: flex; flex-wrap: wrap; gap: 4px 8px; justify-content: space-between; align-items: center; margin-bottom: 4px; font-size: var(--ly-fs-micro); }
+.learny .tutor-message time { color: var(--ly-muted); font-size: var(--ly-fs-micro); }
+.learny .tutor-message.user > p { color: var(--ly-ink-2); }
+.learny .tutor-empty { padding: 16px 0; }
+.learny .tutor-empty span { display: block; margin-top: 4px; color: var(--ly-ink-2); font-size: var(--ly-fs-meta); }
+.learny .tutor-wait { color: var(--ly-ink-2); font-size: var(--ly-fs-meta); }
+.learny .tutor-form { display: grid; gap: 8px; }
+.learny .tutor-form textarea { min-height: 60px; resize: none; }
+.learny .notes-workbench > .section-heading { margin-bottom: 12px; }
+.learny .layout { display: grid; border-top: 1px solid var(--ly-line); min-width: 0; }
+.learny .note-list { background: var(--ly-bg); padding: 10px; border-bottom: 1px solid var(--ly-line); min-width: 0; }
+.learny .search-field { position: relative; margin-bottom: 10px; }
+.learny .search-field > svg { position: absolute; left: 9px; top: 9px; color: var(--ly-muted); }
+.learny .search { padding-left: 30px; }
+.learny .note-items { display: grid; gap: 4px; max-height: 230px; overflow: auto; }
+.learny .note-item { justify-content: flex-start; align-items: flex-start; gap: 8px; text-align: left; border-color: transparent; background: none; }
+.learny .note-item > svg { margin-top: 3px; color: var(--ly-muted); }
+.learny .note-item > span { min-width: 0; overflow-wrap: anywhere; }
+.learny .note-item time { display: block; color: var(--ly-muted); font-size: var(--ly-fs-micro); margin-top: 2px; }
+.learny .note-item.active { color: var(--ly-blue); background: var(--ly-blue-soft); }
+.learny .list-empty { padding: 12px 0; }
+.learny .editor { display: grid; align-content: start; gap: 12px; min-width: 0; padding: 14px 0; }
+.learny .note-title { font-size: var(--ly-fs-content); font-weight: 500; border-color: transparent; padding-left: 0; background: transparent; }
+.learny .segmented { display: flex; border: 1px solid var(--ly-line); border-radius: var(--ly-radius); overflow: hidden; }
+.learny .segmented button { border: 0; border-radius: 0; min-height: 26px; color: var(--ly-ink-2); }
+.learny .segmented button[aria-pressed=true] { background: var(--ly-soft); color: var(--ly-ink); }
+.learny .body { min-height: 320px; padding: 12px; font-size: var(--ly-fs-content); line-height: 1.75; }
+.learny .preview { min-height: 320px; padding: 12px; border: 1px solid var(--ly-line); border-radius: var(--ly-radius-lg); overflow-wrap: anywhere; font-size: var(--ly-fs-content); line-height: 1.75; color: var(--ly-ink-2); }
+.learny :is(.preview,.prose) > * + * { margin-top: 10px; }
+.learny :is(.preview,.prose) :is(ol,ul) { padding-left: 20px; }
+.learny :is(.preview,.prose) :is(a) { color: var(--ly-blue); text-underline-offset: 3px; }
+.learny :is(.preview,.prose) code { font-family: ui-monospace,monospace; font-size: .88em; background: var(--ly-code-bg); border: 1px solid var(--ly-line); padding: 1px 4px; border-radius: 4px; overflow-wrap: anywhere; }
+.learny :is(.preview,.prose) pre code { padding: 0; overflow-wrap: normal; }
+.learny :is(.preview,.prose) table { display: block; max-width: 100%; overflow: auto; border-collapse: collapse; }
+.learny :is(.preview,.prose) :is(td,th) { border: 1px solid var(--ly-line); padding: 6px 10px; }
+.learny .preview input[type=checkbox] { width: auto; min-height: auto; margin-right: 6px; }
+.learny .preview .contains-task-list { list-style: none; padding-left: 0; }
+.learny .status { display: flex; align-items: center; gap: 7px; color: var(--ly-ink-2); font-size: 12px; }
+.learny .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--ly-green); }
+.learny .status-dot.pending { background: var(--ly-warning); }
+.learny .organizer { border-top: 1px solid var(--ly-line); padding-top: 8px; }
+.learny .organizer > :is(label,.row,p,.notice) { margin-top: 12px; }
+.learny .comparison { display: grid; gap: 16px; margin: 16px 0; }
+.learny .comparison pre { margin-top: 8px; max-height: 360px; }
+.learny .file-path { color: var(--ly-ink-2); }
+.learny .file-path p { font-size: 12px; overflow-wrap: anywhere; }
+.learny .empty { display: grid; justify-items: center; align-content: center; text-align: center; gap: 10px; padding: 48px 24px; min-height: 220px; }
+.learny .empty p { color: var(--ly-ink-2); max-width: 48ch; }
+.learny .empty-icon { color: var(--ly-muted); }
+.learny .empty-icon svg { width: 24px; height: 24px; }
+@container learny (min-width: 680px) {
+  .learny .task-grid { grid-template-columns: minmax(0,1fr) 270px; }
+  .learny .task-main { padding-right: 20px; }
+  .learny .task-support { border-top: 0; border-left: 1px solid var(--ly-line); }
+  .learny .layout { grid-template-columns: 200px minmax(0,1fr); }
+  .learny .note-list { border-bottom: 0; border-right: 1px solid var(--ly-line); }
+  .learny .note-items { max-height: 620px; }
+  .learny .editor { padding-left: 20px; }
+  .learny .comparison { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+@container learny (min-width: 1000px) { .learny .task-grid { grid-template-columns: minmax(0,1fr) 300px; } }
+@container learny (max-width: 420px) {
+  .learny .workspace-header { padding: 8px 10px; gap: 8px; }
+  .learny .new-space span { display: none; }
+  .learny .new-space { padding: 4px 8px; }
+  .learny .brand > svg { display: none; }
+  .learny .workspace-nav { padding: 0 10px; }
+  .learny .goal { padding: 0 10px; }
+  .learny .setup-check { margin-left: 10px; margin-right: 10px; }
+  .learny .setup-row { grid-template-columns: 1fr auto; gap: 3px 10px; }
+  .learny .setup-row p { grid-column: 1/-1; }
+  .learny .study, .learny .notes-workbench { padding: 12px 10px; }
+  .learny .space-form { padding: 14px 10px; grid-template-columns: 1fr; }
+  .learny .course-empty { align-items: flex-start; flex-direction: column; }
+  .learny .course-empty .primary { width: 100%; }
+  .learny .task-head__actions { margin-left: 0; width: 100%; }
+  .learny .progress-label span { display: none; }
+  .learny .task-actions .primary { width: 100%; }
+}
+@media (pointer: coarse) { .learny button { min-height: 44px; } }
+@media (prefers-reduced-motion: reduce) { .learny *, .learny *::before, .learny *::after { transition: none !important; scroll-behavior: auto !important; } }

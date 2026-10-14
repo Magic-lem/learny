@@ -1,0 +1,5 @@
+- insert:
+    - id: learny
+      name: dsh-plugin-learny
+      config:
+        dataDir: !!js process.env.LEARNY_DATA_DIR ?? dshHomePath('learny')

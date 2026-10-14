@@ -1,0 +1,250 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "dsh 学习插件 Demo · 本地逻辑架构",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1180,
+      570
+    ],
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "backend": {
+          "label": "本地服务"
+        },
+        "frontend": {
+          "label": "界面"
+        },
+        "database": {
+          "label": "本地存储"
+        }
+      }
+    }
+  },
+  "components": [
+    {
+      "id": "learning-panel",
+      "type": "frontend",
+      "label": "学习面板",
+      "sublabel": "插件 · 地图 · 任务 · 成果",
+      "pos": [
+        60,
+        40
+      ],
+      "size": [
+        240,
+        92
+      ]
+    },
+    {
+      "id": "learning-controller",
+      "type": "backend",
+      "label": "学习 API 与工具",
+      "sublabel": "插件 · 界面和 Agent 共用入口",
+      "pos": [
+        460,
+        40
+      ],
+      "size": [
+        240,
+        92
+      ]
+    },
+    {
+      "id": "learning-domain",
+      "type": "backend",
+      "label": "学习领域服务",
+      "sublabel": "插件 · 教学状态机 · 任务恢复",
+      "pos": [
+        860,
+        40
+      ],
+      "size": [
+        240,
+        92
+      ]
+    },
+    {
+      "id": "source-adapter",
+      "type": "backend",
+      "label": "材料与来源适配",
+      "sublabel": "插件 · 本地文件 · 网页证据",
+      "pos": [
+        60,
+        220
+      ],
+      "size": [
+        240,
+        92
+      ]
+    },
+    {
+      "id": "harness-adapter",
+      "type": "backend",
+      "label": "dsh 运行时适配",
+      "sublabel": "复用 · Agent · 模型 · 工具",
+      "pos": [
+        460,
+        220
+      ],
+      "size": [
+        240,
+        92
+      ]
+    },
+    {
+      "id": "review-policy",
+      "type": "backend",
+      "label": "验收与成果规则",
+      "sublabel": "插件 · 评价标准 · 引用校验",
+      "pos": [
+        860,
+        220
+      ],
+      "size": [
+        240,
+        92
+      ]
+    },
+    {
+      "id": "artifact-files",
+      "type": "database",
+      "label": "本地材料与产出",
+      "sublabel": "文件 · 缓存 · 练习 · 导出",
+      "pos": [
+        60,
+        400
+      ],
+      "size": [
+        240,
+        92
+      ]
+    },
+    {
+      "id": "harness-session",
+      "type": "database",
+      "label": "dsh 会话日志",
+      "sublabel": "复用 · 消息 · 工具 · 模型上下文",
+      "pos": [
+        460,
+        400
+      ],
+      "size": [
+        240,
+        92
+      ]
+    },
+    {
+      "id": "learning-store",
+      "type": "database",
+      "label": "学习领域数据库",
+      "sublabel": "SQLite · 课程 · 尝试 · 任务状态",
+      "pos": [
+        860,
+        400
+      ],
+      "size": [
+        240,
+        92
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "panel-controller",
+      "from": "learning-panel",
+      "to": "learning-controller",
+      "label": "本地 Remote RPC",
+      "variant": "emphasis"
+    },
+    {
+      "id": "controller-domain",
+      "from": "learning-controller",
+      "to": "learning-domain",
+      "label": "业务命令",
+      "variant": "emphasis"
+    },
+    {
+      "id": "domain-review",
+      "from": "learning-domain",
+      "to": "review-policy",
+      "label": "编排与验收",
+      "variant": "emphasis",
+      "labelDy": 52
+    },
+    {
+      "id": "domain-agent",
+      "from": "learning-domain",
+      "to": "harness-adapter",
+      "label": "有界模型任务",
+      "variant": "dashed"
+    },
+    {
+      "id": "agent-sources",
+      "from": "harness-adapter",
+      "to": "source-adapter",
+      "label": "读取 / 检索",
+      "variant": "default"
+    },
+    {
+      "id": "sources-files",
+      "from": "source-adapter",
+      "to": "artifact-files",
+      "label": "保存材料",
+      "variant": "default",
+      "labelDy": 52
+    },
+    {
+      "id": "agent-session",
+      "from": "harness-adapter",
+      "to": "harness-session",
+      "label": "持久会话",
+      "variant": "default",
+      "labelDy": 52
+    },
+    {
+      "id": "review-session",
+      "from": "review-policy",
+      "to": "harness-session",
+      "label": "关联会话证据",
+      "variant": "default"
+    },
+    {
+      "id": "review-store",
+      "from": "review-policy",
+      "to": "learning-store",
+      "label": "校验后提交",
+      "variant": "default",
+      "labelDy": 52
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "dsh 提供执行与界面基础",
+      "items": [
+        "复用会话、模型、工具、React 面板机制",
+        "Host 与 Client 都运行在用户电脑"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "插件管理完整学习过程",
+      "items": [
+        "知识地图、教学阶段、验收与成果均属领域逻辑",
+        "跨会话保存进度，失败任务按阶段重试"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "数据本地保存，模型可联网",
+      "items": [
+        "学习数据走领域存储，材料与导出走文件",
+        "向模型提供的上下文进入 dsh 会话记录"
+      ]
+    }
+  ]
+}

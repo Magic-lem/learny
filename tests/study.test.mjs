@@ -28,13 +28,20 @@ async function action(study,a,kind,text=''){return study.act({workspaceId:a.work
 async function answered(study,id,hint=false){let a=await study.start(id,'registration');a=await action(study,a,'prediction','I predict execute stays local.');a=await action(study,a,'reading','schemas');a=await action(study,a,'startPractice');if(hint)a=await action(study,a,'hint');a=await action(study,a,'practice','My trace: input execute and timeoutMs are excluded. JSON {name:"echo",description:"echo",parameters:{}}.');a=await action(study,a,'explanation','schemaOf projects fields. The host executes functions; the model selects names.');return a}
 const submit=(study,a)=>study.submit({workspaceId:a.workspaceId,attemptId:a.id,expectedRevision:a.revision,sessionId:'chat-one',assistance:'independent'},new AbortController().signal)
 
+test('a node is read through its explanation: opening every source link is not a gate',async t=>{
+ const {study,space}=await setup(t);let a=await study.start(space.id,'registration')
+ a=await action(study,a,'prediction','A guess')
+ // 讲解就是本节材料，来源列表只是可选核对，因此没有记录任何来源也能进入实践。
+ a=await action(study,a,'startPractice')
+ assert.equal(a.stage,'practice')
+})
+
 test('prediction gate, provenance, stale revisions, assistance and immutable submission',async t=>{
  const {study,space,m}=await setup(t);let a=await study.start(space.id,'registration')
  assert.equal((await study.snapshot(space.id)).sources.length,0)
  await assert.rejects(action(study,a,'reading','schemas'))
  await assert.rejects(action(study,a,'hint'))
  const old=a;a=await action(study,a,'prediction','A guess');await assert.rejects(action(study,old,'prediction','stale'))
- await assert.rejects(action(study,a,'startPractice'))
  a=await action(study,a,'reading','schemas');assert.equal((await study.snapshot(space.id)).sources[0].id,'schemas')
  a=await action(study,a,'startPractice');a=await action(study,a,'hint');a=await action(study,a,'practice','My trace: schemaOf returns name, description, parameters, optional deferLoading.');a=await action(study,a,'explanation','execute stays in host.');a=await submit(study,a)
  assert.equal(a.evaluation.outcome,'assisted');assert.equal(a.hints.length,1)

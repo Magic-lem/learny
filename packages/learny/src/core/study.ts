@@ -308,7 +308,9 @@ export class StudyService {
         case 'prediction': if (a.stage !== 'prediction') invalid('stage'); a.prediction = limit(request.text,'prediction'); a.stage = 'reading'; break
         case 'reading': if (a.stage !== 'reading' || !node.sourceIds.includes(request.text)) invalid('source or stage'); if (!a.readingIds.includes(request.text)) a.readingIds.push(request.text); break
         case 'hint': if (a.stage === 'prediction') invalid('prediction required'); { const hint = hints[a.nodeId]?.[a.hints.length]; if (!hint) invalid('no more hints'); a.hints.push(hint); } break
-        case 'startPractice': if (a.stage !== 'reading' || !node.sourceIds.every(id => a.readingIds.includes(id))) invalid('read the listed materials'); a.stage = 'practice'; break
+        // The node's teaching text is what the learner reads here; the source list is
+        // optional reference material, so opening every link is not a gate.
+        case 'startPractice': if (a.stage !== 'reading') invalid('stage'); a.stage = 'practice'; break
         case 'practice': if (a.stage !== 'practice') invalid('stage'); a.evidence = limit(request.text, 'practice evidence'); a.stage = 'explanation'; break
         case 'explanation': if (a.stage !== 'explanation') invalid('stage'); a.explanation = limit(request.text,'explanation'); break
         default: invalid('action')

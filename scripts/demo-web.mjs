@@ -1,5 +1,5 @@
 import { spawnSync, spawn } from 'node:child_process'
-import { mkdirSync, existsSync, readFileSync } from 'node:fs'
+import { mkdirSync, existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
 
@@ -35,7 +35,22 @@ if (process.argv[2] === 'install') {
 } else {
   const patchFile = process.env.DSH_PATCH_FILE
   const args = ['--profile', profile, ...(patchFile ? ['--patch', patchFile] : []), '--no-open', '--host', '127.0.0.1', '--port', process.env.LEARNY_PORT ?? '3097']
-  const child = spawn(cli, args, { cwd: root, env, stdio: 'inherit' })
+  // The host prints a fresh access URL every start (the token is per process), so
+  // keep the current one in a stable file: reopening an old link only 401s.
+  const urlFile = join(root, 'artifacts/learny-demo-url.txt')
+  let seen = ''
+  const relay = (chunk, target) => {
+    target.write(chunk)
+    seen = (seen + chunk).slice(-4000)
+    const match = /http:\/\/127\.0\.0\.1:\d+\/\?token=[A-Za-z0-9_-]+/.exec(seen)
+    if (match) {
+      try { writeFileSync(urlFile, `${match[0]}\n`) } catch { /* the URL is still printed below */ }
+      seen = ''
+    }
+  }
+  const child = spawn(cli, args, { cwd: root, env, stdio: ['ignore', 'pipe', 'pipe'] })
+  child.stdout.on('data', (chunk) => relay(String(chunk), process.stdout))
+  child.stderr.on('data', (chunk) => relay(String(chunk), process.stderr))
   child.on('error', error => { console.error(error.message); process.exitCode = 1 })
   child.on('exit', (code, signal) => { process.exitCode = code ?? (signal ? 1 : 0) })
   for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => child.kill(signal))

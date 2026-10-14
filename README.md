@@ -126,4 +126,4 @@ pnpm demo:install && pnpm demo:web   # 本地起一个 demo 宿主
 
 ## 许可
 
-本仓库尚未添加开源许可证文件，因此当前不授予复制、修改与再分发许可。确定许可后会补上根目录 `LICENSE`。
+[MIT](LICENSE) © 2026 Magic Lem

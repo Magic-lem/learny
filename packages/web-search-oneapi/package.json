@@ -2,6 +2,7 @@
   "name": "dsh-web-search-oneapi",
   "version": "0.1.2",
   "description": "OneAPI-backed WebSearchProvider for dsh",
+  "license": "MIT",
   "type": "module",
   "main": "lib/index.js",
   "types": "lib/types/index.d.ts",

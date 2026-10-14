@@ -14,6 +14,12 @@ declare module '@deepseek-ai/dsh-llm' {
 }
 export interface ModelConfig { timeoutMs: number; maxOutputTokens: number }
 
+/** What each auxiliary request is doing, in the words the learner reads in the chat. */
+const REQUEST_ACTIONS: Record<ModelRequest['kind'], string> = {
+  course: '规划学习路线', lesson: '编写本节讲解', followup: '回答追问',
+  evaluation: '评价本次提交', notes: '整理笔记', tutor: '回答导师对话',
+}
+
 /** Learny consumes the Host model capability; no credentials or provider HTTP here. */
 export class DshModelGateway implements ModelGateway {
   private lifetime = new AbortController()
@@ -33,11 +39,11 @@ export class DshModelGateway implements ModelGateway {
     const messages: GenerateOptions['messages'] = [{role:'user',content:[{type:'text',text:request.payload}]}]
     const options: GenerateOptions = { ...route, system:request.system, messages, maxTokens:this.config.maxOutputTokens,
       sessionId:session.id, signal:AbortSignal.any([signal,this.lifetime.signal,AbortSignal.timeout(this.config.timeoutMs)]) }
-    // Use an ordinary typed context message: third-party non-surface event append
-    // cannot set an ignorable envelope in rc.2. This keeps logs resumable and the
-    // exact auxiliary request reconstructable without introducing an unknown event.
+    // Mark the turn in the session log, but only with one short line: the learner
+    // reads this transcript, and a JSON dump of the whole auxiliary request would
+    // both drown it and travel into every later turn as context.
     session.append('user/message', createUserMessage({source:{kind:'learny',form:'notice',summary:`Learny ${request.kind} request`},
-      content:[{type:'text',text:JSON.stringify({runId:request.runId,kind:request.kind,route,system:request.system,messages,maxTokens:this.config.maxOutputTokens})}]}), {surfaceOp:'append'})
+      content:[{type:'text',text:`Learny 正在${REQUEST_ACTIONS[request.kind]}（${request.runId}）…`}]}), {surfaceOp:'append'})
     if (!await this.ctx.sessions.flush(session)) throw new Error('Model request could not be persisted to the dsh session log.')
     const assembler = new BlockAssembler()
     try {
@@ -49,7 +55,7 @@ export class DshModelGateway implements ModelGateway {
       const text = blocks.filter(block => block.type==='text').map(block => block.text).join('')
       if (!text.trim()) throw new Error('The configured model returned no text')
       session.append('user/message',createUserMessage({source:{kind:'learny',form:'notice',summary:`Learny ${request.kind} model proposal`},
-        content:[{type:'text',text:JSON.stringify({runId:request.runId,kind:request.kind,route,output:text})}]}),{surfaceOp:'append'})
+        content:[{type:'text',text:`Learny 完成${REQUEST_ACTIONS[request.kind]}（${request.runId}，${text.length} 字）。结果保存在 Learny，不在对话里。`}]}),{surfaceOp:'append'})
       if (!await this.ctx.sessions.flush(session)) throw new Error('Model proposal could not be persisted to the dsh session log.')
       return text
     } catch (error) {

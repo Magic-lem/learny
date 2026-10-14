@@ -44,9 +44,8 @@ cd learny
 pnpm install --frozen-lockfile
 pnpm build
 
-# 2. 装进一个专用的 dsh profile（首次用 --from-default-profile 派生）
-dsh --profile learny --from-default-profile web --dump-config
-dsh plugin --profile learny add link:$PWD/packages/learny
+# 2. 装进 dsh 的 web profile（dsh 会自动把它落成 profile）
+dsh plugin --profile web add link:$PWD/packages/learny
 
 # 3. 模型按你自己的服务填，搜索用 dsh 内置的 DeepSeek 搜索
 export LEARNY_MODEL_URL='https://your-gateway/v1'
@@ -55,11 +54,10 @@ export LEARNY_MODEL_ID='your-model-id'
 export DEEPSEEK_API_KEY='...'
 
 # 4. 启动，用终端打印的带 token 的地址打开
-dsh --profile learny --patch ./examples/dsh-model.patch.yml \
-  --no-open --host 127.0.0.1 --port 3097
+dsh web --patch ./examples/dsh-model.patch.yml
 ```
 
-`dsh plugin add` 就是在这个 profile 里执行 `pnpm add`，所以下面几种来源都可以：源码目录 `link:$PWD/packages/learny`（改完 `pnpm build` 即生效）、打包产物 `./artifacts/dsh-plugin-learny-0.1.4.tgz`（`pnpm pack:plugin` 产出，适合分发和固定版本）、发布到 npm 后的包名。完整步骤见 **[安装与使用](docs/install-and-use.md)**。
+`dsh plugin add` 就是在该 profile 里执行 `pnpm add`，所以来源可以是：源码目录 `link:$PWD/packages/learny`（改完 `pnpm build` 即生效）、打包产物 `./artifacts/dsh-plugin-learny-0.1.4.tgz`（`pnpm pack:plugin` 产出，适合分发和固定版本）、或发布到 npm 后的包名。装进 `web` 就是装进你日常用的那个 dsh；想隔离出一份独立 profile 时，把 `web` 换成你自己的 profile 名即可。完整步骤见 **[安装与使用](docs/install-and-use.md)**。
 
 第一次打开时，Learny 顶部会做一次能力自检（模型 / 网页搜索 / 网页抓取）。项目空间只用本地材料，主题空间才需要搜索。
 

@@ -65,8 +65,8 @@ export DEEPSEEK_API_KEY='...'
 只有当你的搜索能力来自一个**兼容网关**（能返回结构化来源，但没有 dsh 内置 provider）时，才需要这一步。这时装本仓库的可选适配器 `dsh-web-search-oneapi`：
 
 ```sh
-dsh plugin --profile learny add link:$PWD/packages/web-search-oneapi
-# 或打包产物：dsh plugin --profile learny add ./artifacts/dsh-web-search-oneapi-0.1.2.tgz
+dsh plugin --profile web add link:$PWD/packages/web-search-oneapi
+# 或打包产物：dsh plugin --profile web add ./artifacts/dsh-web-search-oneapi-0.1.2.tgz
 ```
 
 再加一份 overlay，示例见 [examples/dsh-oneapi-web-search.patch.yml](../examples/dsh-oneapi-web-search.patch.yml)：

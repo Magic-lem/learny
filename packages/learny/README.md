@@ -5,10 +5,11 @@ Learny 的 dsh 插件本体：在 dsh 右侧工作台提供学习空间、学习
 ## 安装
 
 ```sh
-dsh plugin --profile <profile> add /absolute/path/dsh-plugin-learny-0.1.4.tgz
+dsh plugin --profile web add link:/absolute/path/to/learny/packages/learny
+# 发布到 npm 后：dsh plugin --profile web add dsh-plugin-learny
 ```
 
-装好后在聊天的右侧工作台选择 Learny。学习空间与单条聊天独立，多个聊天可以绑定同一个空间。
+装进 `web` 就是装进你日常 `dsh web` 用的那份 profile；装好后在聊天的右侧工作台选择 Learny。学习空间与单条聊天独立，多个聊天可以绑定同一个空间。
 
 宿主基线为 `@deepseek-ai/dsh@0.2.0-rc.2`，插件声明的兼容范围以此为准。
 

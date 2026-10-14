@@ -33,15 +33,17 @@ pnpm pack:plugin          # 产出 artifacts/dsh-plugin-learny-<版本>.tgz（�
 
 ## 3. 装进 dsh profile
 
-profile 是 dsh 的插件集合。给 Learny 单独开一个，避免影响你日常用的那份。`dsh plugin add` 就是在这个 profile 里执行 `pnpm add`，所以来源可以是源码目录、tgz、npm 包名或 git 地址：
+profile 是 dsh 的插件集合。**直接装进 `web` 就行**——dsh 会自动把自带的 web 模板落成 `$DSH_HOME/profiles/web`，路径里带上插件；这也是你日常 `dsh web` 用的那份：
 
 ```sh
-dsh --profile learny --from-default-profile web --dump-config
-dsh plugin --profile learny add link:$PWD/packages/learny     # 源码目录（改完再 pnpm build 即生效）
-# 或者：dsh plugin --profile learny add ./artifacts/dsh-plugin-learny-0.1.4.tgz
+dsh plugin --profile web add link:$PWD/packages/learny     # 源码目录（改完再 pnpm build 即生效）
+# 或者：dsh plugin --profile web add ./artifacts/dsh-plugin-learny-0.1.4.tgz
+# 发布到 npm 之后：dsh plugin --profile web add dsh-plugin-learny
 ```
 
-安装后 profile 的 `package.json` 里会出现 `dsh-plugin-learny`，并自动加进 `bundles` 列表；插件的 `cordis.patch.yml` 负责把 Learny 挂到右侧工作台。
+`dsh plugin add` 就是在该 profile 里执行 `pnpm add`，所以来源可以是源码目录、tgz、npm 包名或 git 地址。安装后 profile 的 `package.json` 里会出现 `dsh-plugin-learny`，并自动加进 `bundles` 列表；插件的 `cordis.patch.yml` 负责把 Learny 挂到右侧工作台。
+
+想把它和你日常环境隔开时，再用别的方式建一份独立 profile（`dsh --profile <名字> --from-default-profile web`），把上面的 `web` 换成那个名字即可。
 
 **搜索不需要装任何插件**：dsh 内置了 DeepSeek 搜索，配一个 Key 就行（见第 5 节）。
 
@@ -90,7 +92,7 @@ export DEEPSEEK_API_KEY='...'
 只有当你的搜索能力来自一个**兼容网关**（能返回结构化来源，但 dsh 没有对应 provider）时，才需要本仓库的可选适配器 `dsh-web-search-oneapi`：
 
 ```sh
-dsh plugin --profile learny add link:$PWD/packages/web-search-oneapi
+dsh plugin --profile web add link:$PWD/packages/web-search-oneapi
 ```
 
 再给 profile 加一份 overlay，参考 [dsh-oneapi-web-search.patch.yml](../examples/dsh-oneapi-web-search.patch.yml)：
@@ -122,9 +124,7 @@ export ONEAPI_API_KEY='...'
 ## 6. 启动
 
 ```sh
-dsh --profile learny \
-  --patch ./examples/dsh-model.patch.yml \
-  --no-open --host 127.0.0.1 --port 3097
+dsh web --patch ./examples/dsh-model.patch.yml
 ```
 
 终端会打印一行带本次访问 token 的地址，用它打开页面，在右侧工作台切到 Learny。

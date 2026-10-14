@@ -33,31 +33,35 @@ Learny 是一个跑在 [dsh](https://www.npmjs.com/package/@deepseek-ai/dsh)（D
 
 ## 快速开始
 
+Learny 只提供一个插件包；模型和网页搜索用的是 dsh 自己的能力，其中搜索由 dsh 内置的 DeepSeek 搜索提供，配一个 API Key 即可。
+
 需要 Node.js 24+、pnpm，和一个已经能对话的 dsh：
 
 ```sh
+# 1. 拿到插件并构建（插件以 lib/ 为入口，源码需要先 build 一次）
 git clone https://github.com/Magic-lem/learny.git
 cd learny
 pnpm install --frozen-lockfile
 pnpm build
-pnpm pack:plugin
 
-# 从 dsh 自带的 web profile 派生一份 Learny 专用 profile（首次）
+# 2. 装进一个专用的 dsh profile（首次用 --from-default-profile 派生）
 dsh --profile learny --from-default-profile web --dump-config
-dsh plugin --profile learny add ./artifacts/dsh-plugin-learny-0.1.4.tgz
-dsh plugin --profile learny add ./artifacts/dsh-web-search-oneapi-0.1.2.tgz
+dsh plugin --profile learny add link:$PWD/packages/learny
 
-# 用自带的 DeepSeek 搜索时，把下面第二行换成 export DEEPSEEK_API_KEY=...
-# 其他网关的搜索配置见 docs/configuration.md
-dsh --profile learny \
-  --patch ./examples/dsh-model.patch.yml \
-  --patch ./examples/dsh-oneapi-web-search.patch.yml \
+# 3. 模型按你自己的服务填，搜索用 dsh 内置的 DeepSeek 搜索
+export LEARNY_MODEL_URL='https://your-gateway/v1'
+export LEARNY_MODEL_KEY='...'
+export LEARNY_MODEL_ID='your-model-id'
+export DEEPSEEK_API_KEY='...'
+
+# 4. 启动，用终端打印的带 token 的地址打开
+dsh --profile learny --patch ./examples/dsh-model.patch.yml \
   --no-open --host 127.0.0.1 --port 3097
 ```
 
-终端会打印一行带访问 token 的地址，用它打开页面，在右侧工作台切到 Learny。模型和网页搜索属于 dsh profile 的配置，完整步骤见 **[安装与使用](docs/install-and-use.md)**。
+`dsh plugin add` 就是在这个 profile 里执行 `pnpm add`，所以下面几种来源都可以：源码目录 `link:$PWD/packages/learny`（改完 `pnpm build` 即生效）、打包产物 `./artifacts/dsh-plugin-learny-0.1.4.tgz`（`pnpm pack:plugin` 产出，适合分发和固定版本）、发布到 npm 后的包名。完整步骤见 **[安装与使用](docs/install-and-use.md)**。
 
-第一次打开时，Learny 顶部会做一次能力自检（模型 / 网页搜索 / 网页抓取）。主题空间需要搜索能力，项目空间不需要。
+第一次打开时，Learny 顶部会做一次能力自检（模型 / 网页搜索 / 网页抓取）。项目空间只用本地材料，主题空间才需要搜索。
 
 ## 配置
 
@@ -71,7 +75,7 @@ dsh --profile learny \
 | `researchPageCacheTtlDays` | `30` | 已读网页正文的复用天数 |
 | `timeoutMs` | `60000` | 单次模型调用超时 |
 
-完整说明与示例：[配置](docs/configuration.md)。
+模型和搜索都属于 dsh profile，Learny 不保存任何 endpoint 与密钥。完整说明与示例：[配置](docs/configuration.md)。
 
 ## 数据与隐私
 
@@ -115,7 +119,7 @@ pnpm pack:plugin   # 产出 artifacts/ 下的两个插件包
 pnpm demo:install && pnpm demo:web   # 本地起一个 demo 宿主
 ```
 
-仓库结构：`packages/learny` 是插件本体，`packages/web-search-oneapi` 是把兼容网关接成 dsh 搜索 provider 的可选适配器，`examples/` 是 dsh profile overlay 示例，`tests/` 是自动化检查，`architecture/` 是架构图。
+仓库结构：`packages/learny` 是插件本体（唯一的必需品），`packages/web-search-oneapi` 是可选适配器——把没有内置搜索、但能返回结构化来源的 OpenAI/Anthropic 兼容网关接成 dsh 的搜索 provider，不用它时删掉该目录也不影响 Learny。`examples/` 是 dsh profile overlay 示例，`tests/` 是自动化检查，`architecture/` 是架构图。
 
 ## 状态与限制
 

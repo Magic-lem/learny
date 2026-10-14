@@ -1,10 +1,14 @@
 # dsh-web-search-oneapi
 
-`dsh-web-search-oneapi` registers a dsh `WebSearchProvider` named `oneapi`.
-It calls an OpenAI-compatible OneAPI endpoint and maps explicit `sources`,
-`search_results`, `documents`, citation annotations, and completed Responses
-`open_page` URLs into
-dsh's portable `sources[]` shape.
+**可选包，不是 Learny 的依赖。** Learny 主题学习只需要 dsh 暴露一个搜索 provider；
+dsh 自带 DeepSeek 搜索，大多数用户不需要装这个包。只有当搜索能力来自一个兼容网关
+（返回结构化来源，但 dsh 没有对应 provider）时，才需要它。
+
+`dsh-web-search-oneapi` registers a dsh `WebSearchProvider` named `oneapi`,
+backed by any OpenAI- or Anthropic-compatible gateway (OneAPI, or another
+gateway exposing `/v1/responses`, `/v1/messages` or `/v1/chat/completions`).
+It maps explicit `sources`, `search_results`, `documents`, citation annotations
+and completed Responses `open_page` URLs into dsh's portable `sources[]` shape.
 
 The adapter is deliberately separate from Learny. Learny only depends on
 `ctx.web.search()`, so a profile can replace OneAPI with another provider

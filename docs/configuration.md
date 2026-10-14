@@ -48,19 +48,28 @@ export LEARNY_MODEL_ID='your-model-id'
 
 ## 2. 网页搜索
 
-主题空间需要它（项目空间不需要）。两条路任选其一。
+主题空间需要它（项目空间不需要）。**搜索能力由 dsh 提供，不是 Learny 的一部分**：Learny 只调用 `ctx.web.search`，谁来实现都行。
 
-### A. dsh 自带的 DeepSeek 搜索
+### 默认：dsh 内置的 DeepSeek 搜索
+
+`dsh-base` 已经内置 `@deepseek-ai/dsh-web-search-deepseek`，不需要安装任何插件，配一个 Key 就能用：
 
 ```sh
 export DEEPSEEK_API_KEY='...'
 ```
 
-这是 `dsh-base` 内置的 `@deepseek-ai/dsh-web-search-deepseek`，不需要额外装插件。
+如果你已经登录了 DeepSeek 账号，也可以直接走账号模式，不配 Key。
 
-### B. 你自己的兼容网关
+### 可选：把其它网关接成搜索 provider
 
-装上本仓库的适配器（`pnpm pack:plugin` 产出的 `dsh-web-search-oneapi-<版本>.tgz`），再加一份 overlay，示例见 [examples/dsh-oneapi-web-search.patch.yml](../examples/dsh-oneapi-web-search.patch.yml)：
+只有当你的搜索能力来自一个**兼容网关**（能返回结构化来源，但没有 dsh 内置 provider）时，才需要这一步。这时装本仓库的可选适配器 `dsh-web-search-oneapi`：
+
+```sh
+dsh plugin --profile learny add link:$PWD/packages/web-search-oneapi
+# 或打包产物：dsh plugin --profile learny add ./artifacts/dsh-web-search-oneapi-0.1.2.tgz
+```
+
+再加一份 overlay，示例见 [examples/dsh-oneapi-web-search.patch.yml](../examples/dsh-oneapi-web-search.patch.yml)：
 
 ```yaml
 - id: web
@@ -85,6 +94,8 @@ export ONEAPI_HEADERS_JSON='{}'
 ```
 
 适配器只接受响应里的结构化检索元数据：`sources`、`search_results`、`documents`、citation annotations，或已完成的 `open_page` 调用里的 URL。**模型在正文里写出的链接不会被当成检索证据**——这是为了区分"真的搜到了"和"看起来像搜到了"。网关只在普通对话里返回正文而不返回这些结构时，Learny 会明确报"没有可用检索元数据"，而不是拿正文里的链接凑数。
+
+这个适配器与 Learny 本体解耦：不装它，Learny 照常工作，主题空间用 DeepSeek 搜索；不需要它时可以直接删掉 `packages/web-search-oneapi` 目录。
 
 ## 3. 插件参数
 

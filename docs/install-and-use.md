@@ -10,36 +10,40 @@ Learny 是一个 dsh 插件：它装在 dsh profile 里，学习数据留在本�
 | pnpm | 用来安装工作区和打包插件 |
 | dsh | 版本要覆盖插件声明的宿主基线，本仓库固定 `@deepseek-ai/dsh@0.2.0-rc.2`（见 [维护者笔记里的基线说明](internal/runtime-baseline.md)） |
 | 模型 | 任意一个 dsh 能调用的模型：DeepSeek、OpenAI 兼容网关、公司内部网关都可以，只要能在 dsh 里跑通一次对话 |
-| 网页搜索（可选） | 生成主题路线时需要。项目空间只用本地材料，不需要搜索 |
+| 网页搜索 | 主题路线需要。dsh 自带 DeepSeek 搜索，配 `DEEPSEEK_API_KEY` 即可；项目空间只用本地材料，不需要搜索 |
 
 Learny 自己不保存任何供应商配置：endpoint、密钥、模型名都属于 dsh profile，插件只消费 dsh 暴露的 `ctx.llm`、`ctx.web.search`、`ctx.web.fetch`。
 
-## 2. 拿到插件包
+## 2. 拿到插件
+
+插件以 `lib/` 为入口，`lib/` 是构建产物（不随仓库提交），所以从源码用它要先 build 一次。**不需要打成 tgz**，装进 profile 时直接指向源码目录即可：
 
 ```sh
-git clone https://github.com/<你的账号>/learny.git
+git clone https://github.com/Magic-lem/learny.git
 cd learny
 pnpm install --frozen-lockfile
 pnpm build
-pnpm pack:plugin          # 产出 artifacts/dsh-plugin-learny-<版本>.tgz
 ```
 
-`pack:plugin` 会同时打出两个包：
+需要把插件分发给别人、或想固定一个版本时，再打包：
 
-- `dsh-plugin-learny`：本体，学习空间、路线、笔记、评价、讲解都在这里。
-- `dsh-web-search-oneapi`：可选。把 OneAPI 之类的 OpenAI/Anthropic 兼容网关接成 dsh 的搜索 provider，供 Learny 生成主题路线时使用。
+```sh
+pnpm pack:plugin          # 产出 artifacts/dsh-plugin-learny-<版本>.tgz（以及可选的搜索适配器）
+```
 
 ## 3. 装进 dsh profile
 
-profile 是 dsh 的插件集合。给 Learny 单独开一个，避免影响你日常用的那份：
+profile 是 dsh 的插件集合。给 Learny 单独开一个，避免影响你日常用的那份。`dsh plugin add` 就是在这个 profile 里执行 `pnpm add`，所以来源可以是源码目录、tgz、npm 包名或 git 地址：
 
 ```sh
 dsh --profile learny --from-default-profile web --dump-config
-dsh plugin --profile learny add ./artifacts/dsh-plugin-learny-0.1.4.tgz
-dsh plugin --profile learny add ./artifacts/dsh-web-search-oneapi-0.1.2.tgz   # 可选
+dsh plugin --profile learny add link:$PWD/packages/learny     # 源码目录（改完再 pnpm build 即生效）
+# 或者：dsh plugin --profile learny add ./artifacts/dsh-plugin-learny-0.1.4.tgz
 ```
 
-安装后 profile 的 `package.json` 里会出现这两个依赖；本体的 `cordis.patch.yml` 已经把 Learny 挂到右侧工作台。
+安装后 profile 的 `package.json` 里会出现 `dsh-plugin-learny`，并自动加进 `bundles` 列表；插件的 `cordis.patch.yml` 负责把 Learny 挂到右侧工作台。
+
+**搜索不需要装任何插件**：dsh 内置了 DeepSeek 搜索，配一个 Key 就行（见第 5 节）。
 
 ## 4. 配置模型
 
@@ -75,15 +79,21 @@ export LEARNY_MODEL_ID='your-model-id'
 
 ## 5. 配置网页搜索
 
-主题路线需要先搜资料。两条路，任选一条：
-
-**A. 用 dsh 自带的 DeepSeek 搜索**（需要 DeepSeek API Key）：
+主题路线需要先搜资料。**搜索能力来自 dsh，不需要为 Learny 装任何插件**；默认用 dsh 内置的 DeepSeek 搜索：
 
 ```sh
 export DEEPSEEK_API_KEY='...'
 ```
 
-**B. 用你自己的兼容网关**（OneAPI 等）：装上面的 `dsh-web-search-oneapi`，再给 profile 加一份 overlay，参考 [dsh-oneapi-web-search.patch.yml](../examples/dsh-oneapi-web-search.patch.yml)：
+已经登录 DeepSeek 账号的话也可以走账号模式，不配 Key。
+
+只有当你的搜索能力来自一个**兼容网关**（能返回结构化来源，但 dsh 没有对应 provider）时，才需要本仓库的可选适配器 `dsh-web-search-oneapi`：
+
+```sh
+dsh plugin --profile learny add link:$PWD/packages/web-search-oneapi
+```
+
+再给 profile 加一份 overlay，参考 [dsh-oneapi-web-search.patch.yml](../examples/dsh-oneapi-web-search.patch.yml)：
 
 ```yaml
 - id: web
@@ -107,16 +117,19 @@ export ONEAPI_API_KEY='...'
 
 适配器只接受响应里的结构化检索元数据（`sources`、`search_results`、citation annotations，或已完成的 `open_page` 调用里的 URL）。模型在正文里写出的链接不会被当成检索证据，这是为了避免"看起来有来源、其实没搜"。
 
+这个适配器和 Learny 本体解耦：不装它，Learny 照常工作，主题空间走 DeepSeek 搜索。
+
 ## 6. 启动
 
 ```sh
 dsh --profile learny \
   --patch ./examples/dsh-model.patch.yml \
-  --patch ./examples/dsh-oneapi-web-search.patch.yml \
   --no-open --host 127.0.0.1 --port 3097
 ```
 
 终端会打印一行带本次访问 token 的地址，用它打开页面，在右侧工作台切到 Learny。
+
+上面只挂了模型；搜索用 dsh 内置的 DeepSeek 搜索时，`DEEPSEEK_API_KEY` 放进启动环境即可。只有装了可选适配器时，才需要再加上 `--patch ./examples/dsh-oneapi-web-search.patch.yml`。
 
 ## 7. 第一次使用
 

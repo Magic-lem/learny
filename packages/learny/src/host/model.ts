@@ -14,6 +14,18 @@ declare module '@deepseek-ai/dsh-llm' {
 }
 export interface ModelConfig { timeoutMs: number; maxOutputTokens: number }
 
+/**
+ * Append one short line to the session log, but only when the session already has its
+ * protected first surface message. Appending before that makes the notice the session
+ * first surface event and corrupts the log (resume then fails with "system/message
+ * requires a protected first surface head"), so a session where the learner has not
+ * spoken yet simply carries no notice.
+ */
+function notice(session: Session, summary: string, text: string): void {
+  if (!session.snapshotEvents().some(event => event.type === 'system/message')) return
+  session.append('user/message', createUserMessage({ source: { kind: 'learny', form: 'notice', summary }, content: [{ type: 'text', text }] }), { surfaceOp: 'append' })
+}
+
 /** What each auxiliary request is doing, in the words the learner reads in the chat. */
 const REQUEST_ACTIONS: Record<ModelRequest['kind'], string> = {
   course: '规划学习路线', lesson: '编写本节讲解', followup: '回答追问',
@@ -42,8 +54,7 @@ export class DshModelGateway implements ModelGateway {
     // Mark the turn in the session log, but only with one short line: the learner
     // reads this transcript, and a JSON dump of the whole auxiliary request would
     // both drown it and travel into every later turn as context.
-    session.append('user/message', createUserMessage({source:{kind:'learny',form:'notice',summary:`Learny ${request.kind} request`},
-      content:[{type:'text',text:`Learny 正在${REQUEST_ACTIONS[request.kind]}（${request.runId}）…`}]}), {surfaceOp:'append'})
+    notice(session, `Learny ${request.kind} 请求`, `Learny 正在${REQUEST_ACTIONS[request.kind]}（${request.runId}）…`)
     if (!await this.ctx.sessions.flush(session)) throw new Error('Model request could not be persisted to the dsh session log.')
     const assembler = new BlockAssembler()
     try {
@@ -54,13 +65,11 @@ export class DshModelGateway implements ModelGateway {
       if (blocks.some(block => block.type==='tool-call')) throw new Error('Learny evaluation must not execute tools')
       const text = blocks.filter(block => block.type==='text').map(block => block.text).join('')
       if (!text.trim()) throw new Error('The configured model returned no text')
-      session.append('user/message',createUserMessage({source:{kind:'learny',form:'notice',summary:`Learny ${request.kind} model proposal`},
-        content:[{type:'text',text:`Learny 完成${REQUEST_ACTIONS[request.kind]}（${request.runId}，${text.length} 字）。结果保存在 Learny，不在对话里。`}]}),{surfaceOp:'append'})
+      notice(session, `Learny ${request.kind} 结果`, `Learny 完成${REQUEST_ACTIONS[request.kind]}（${request.runId}，${text.length} 字）。结果保存在 Learny，不在对话里。`)
       if (!await this.ctx.sessions.flush(session)) throw new Error('Model proposal could not be persisted to the dsh session log.')
       return text
     } catch (error) {
-      session.append('user/message',createUserMessage({source:{kind:'learny',form:'notice',summary:'Learny model request interrupted or failed'},
-        content:[{type:'text',text:JSON.stringify({runId:request.runId,kind:request.kind,status:options.signal!.aborted?'interrupted':'failed'})}]}),{surfaceOp:'append'})
+      notice(session, `Learny ${request.kind} 未完成`, `Learny ${REQUEST_ACTIONS[request.kind]}没有完成（${request.runId}），可以重试。`)
       await this.ctx.sessions.flush(session); throw error
     }
   }

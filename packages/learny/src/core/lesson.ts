@@ -133,6 +133,30 @@ export function nodeTaskPrompt(workspaceName: string, node: StudyNode, material:
     material.length ? `可用资料（优先使用，不要编造资料之外的内容）：\n${material.map(item => `- [${item.id}] ${item.title} ${item.url}`).join('\n')}` : '',
     '请按这个结构讲这一节，面向已经会写代码但刚接触这个主题的人：\n1. 这一节解决什么问题（为什么需要它）\n2. 关键概念与工作机制（把容易误解的地方点出来）\n3. 一个学习者可以自己动手验证的下一步',
     '用中文 Markdown，小节标题加粗即可，不要写总结性客套话；引用依据时在句末标注 [资料id]。讲解是给学习者读的，不要替学习者完成实践题。',
+    fenceContract(),
+
   ]
   return parts.filter(Boolean).join('\n\n')
+}
+
+/**
+ * 讲解里允许穿插的块。Learny 的客户端会把对话正文里的 ```learny 围栏就地渲染成
+ * 可交互的块（见 client/fence.tsx），所以这里要把格式和用法讲清楚，模型才知道能写、
+ * 怎么写。数量与位置都不限制：块只在真的比文字更清楚时用，中间照常用文字接着讲。
+ */
+export function fenceContract(): string {
+  return [
+    '讲解里可以穿插 ```learny 围栏块，数量与位置都不限制，块与块之间照常用文字接着讲。',
+    '块体是一个 JSON 对象，只用下面两种：',
+    '1) 自测（讲完一个容易混淆的点后，让学习者当场判断）：',
+    '```learny',
+    '{"block":"quiz","title":"这一节的自测","questions":[{"q":"问题","options":["选项A","选项B"],"answer":1,"explain":"为什么是它"}]}',
+    '```',
+    '2) 要点卡（把一段容易散的结论收拢成一条，正文里不必再重复）：',
+    '```learny',
+    '{"block":"note","title":"要点标题","body":"一两句话，段间空行分段"}',
+    '```',
+    '要求：answer 是从 0 开始的正确选项下标；explain 必须解释为什么，不要只写"正确"；',
+    '每节最多 2~3 个块，讲不清的地方用文字补，不要为了好看硬塞块；JSON 必须能被直接解析，不要加注释或多余文字。',
+  ].join('\n')
 }

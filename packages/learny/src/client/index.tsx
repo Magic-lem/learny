@@ -7,6 +7,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import remote from 'dsh-plugin-learny/remote'
 import { LearnyBody } from './notebook.tsx'
+import { installFenceRenderer } from './fence.tsx'
 import { zh, en } from './locales.ts'
 import styles from './style.css'
 
@@ -23,6 +24,12 @@ export function apply(ctx: Context): void {
     style.textContent = styles
     document.head.append(style)
     return () => style.remove()
+  })
+  // 讲解里的围栏块（自测、要点）要在对话正文里就地渲染：宿主没有围栏扩展点，
+  // 只能挂一个 DOM 通道。它独立于右侧面板，装在就生效。
+  ctx.effect(() => {
+    const stop = installFenceRenderer()
+    return () => stop()
   })
   ctx.inject(['remote.learny'], ctx => {
     const t = ctx.locale.bind('learny')

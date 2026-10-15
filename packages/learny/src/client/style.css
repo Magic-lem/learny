@@ -360,3 +360,83 @@
 }
 @media (pointer: coarse) { .learny button { min-height: 44px; } }
 @media (prefers-reduced-motion: reduce) { .learny *, .learny *::before, .learny *::after { transition: none !important; scroll-behavior: auto !important; } }
+
+/* 围栏块渲染在对话正文里，不在 .learny 面板内，所以这里重新声明一遍同样的宿主 token，
+   保证正文里的块和右侧面板同一套颜色、字号与圆角。 */
+.learny-fence-host { display: block; }
+.learny-fence-hidden { display: none !important; }
+
+.learny-fence {
+  --ly-fs-body: var(--dsh-content-font-size-secondary, 13px);
+  --ly-fs-content: var(--dsh-content-font-size, 14px);
+  --ly-fs-meta: 12px;
+  --ly-paper: var(--dsw-alias-bg-base, light-dark(#ffffff, #151517));
+  --ly-bg: var(--dsw-alias-bg-layer-1, light-dark(#f5f7fb, #232324));
+  --ly-soft: var(--dsw-alias-interactive-bg-hover, light-dark(rgba(38, 49, 72, .06), rgba(255, 255, 255, .08)));
+  --ly-ink: var(--dsw-alias-label-primary, light-dark(#0f1115, #f9fafb));
+  --ly-ink-2: var(--dsw-alias-label-secondary, light-dark(#61666b, #cfd3d6));
+  --ly-muted: var(--dsw-alias-label-tertiary, light-dark(#81858c, #adb2b8));
+  --ly-line: var(--dsw-alias-border-l2, light-dark(rgba(0, 0, 0, .1), rgba(255, 255, 255, .12)));
+  --ly-line-soft: var(--dsw-alias-border-l1, light-dark(rgba(0, 0, 0, .04), rgba(255, 255, 255, .06)));
+  --ly-blue: var(--dsw-alias-link, light-dark(#4176e6, #7aaaff));
+  --ly-button: var(--dsw-alias-button-info-fill, #4176e6);
+  --ly-ok: var(--dsw-alias-label-success, light-dark(#15803d, #4ade80));
+  --ly-bad: var(--dsw-alias-label-danger, light-dark(#b91c1c, #f87171));
+  --ly-radius: 8px;
+  --ly-radius-lg: 12px;
+
+  margin: 10px 0;
+  color: var(--ly-ink);
+  font-size: var(--ly-fs-content);
+  line-height: 1.62;
+}
+.learny-fence h4 { margin: 0; font-size: var(--ly-fs-content); font-weight: 600; }
+.learny-fence p { margin: 0; }
+.learny-fence .learny-fence-label {
+  display: inline-block; margin-right: 8px; padding: 1px 7px;
+  border-radius: 999px; background: var(--ly-soft); color: var(--ly-ink-2);
+  font-size: var(--ly-fs-meta); font-weight: 500; vertical-align: 1px;
+}
+
+/* 要点块 */
+.learny-fence-note {
+  border: 1px solid var(--ly-line); border-left: 3px solid var(--ly-blue);
+  border-radius: var(--ly-radius-lg); padding: 12px 14px; background: var(--ly-bg);
+}
+.learny-fence-note h4 { margin-bottom: 6px; }
+.learny-fence-note p + p { margin-top: 8px; }
+
+/* 自测块 */
+.learny-fence-quiz {
+  border: 1px solid var(--ly-line); border-radius: var(--ly-radius-lg);
+  padding: 14px 16px; background: var(--ly-paper);
+}
+.learny-fence-quiz > header { margin-bottom: 10px; }
+.learny-fence-quiz ol { margin: 0; padding-left: 20px; display: grid; gap: 14px; }
+.learny-fence-quiz li { font-size: var(--ly-fs-content); }
+.learny-fence-question { margin-bottom: 8px !important; }
+.learny-fence-options { display: grid; gap: 4px; }
+.learny-fence-option {
+  display: flex; align-items: flex-start; gap: 8px; width: 100%;
+  padding: 6px 10px; border: 1px solid transparent; border-radius: var(--ly-radius);
+  background: transparent; color: var(--ly-ink); font: inherit; text-align: left; cursor: pointer;
+}
+.learny-fence-option:hover:not(:disabled) { background: var(--ly-soft); }
+.learny-fence-option:disabled { cursor: default; }
+.learny-fence-option.is-picked { border-color: var(--ly-line); background: var(--ly-soft); }
+.learny-fence-option.is-right { border-color: var(--ly-ok); color: var(--ly-ok); }
+.learny-fence-option.is-wrong { border-color: var(--ly-bad); color: var(--ly-bad); }
+.learny-fence-option.is-answer { border-color: var(--ly-ok); color: var(--ly-ok); }
+.learny-fence-mark { flex: none; line-height: 1.62; }
+.learny-fence-explain {
+  margin-top: 8px !important; padding-left: 10px; border-left: 2px solid var(--ly-line);
+  color: var(--ly-ink-2); font-size: var(--ly-fs-body);
+}
+.learny-fence-actions { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+.learny-fence-actions button {
+  padding: 5px 14px; border: 1px solid var(--ly-line); border-radius: var(--ly-radius);
+  background: transparent; color: var(--ly-ink); font: inherit; cursor: pointer;
+}
+.learny-fence-submit { border-color: var(--ly-button) !important; background: var(--ly-button) !important; color: #fff !important; font-weight: 600; }
+.learny-fence-submit:disabled { opacity: .5; cursor: default; }
+.learny-fence-score { color: var(--ly-muted); font-size: var(--ly-fs-body); }

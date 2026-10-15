@@ -29,6 +29,29 @@ async function action(study,a,kind,text=''){return study.act({workspaceId:a.work
 async function answered(study,id,hint=false){let a=await study.start(id,'registration');a=await action(study,a,'prediction','I predict execute stays local.');a=await action(study,a,'reading','schemas');a=await action(study,a,'startPractice');if(hint)a=await action(study,a,'hint');a=await action(study,a,'practice','My trace: input execute and timeoutMs are excluded. JSON {name:"echo",description:"echo",parameters:{}}.');a=await action(study,a,'explanation','schemaOf projects fields. The host executes functions; the model selects names.');return a}
 const submit=(study,a)=>study.submit({workspaceId:a.workspaceId,attemptId:a.id,expectedRevision:a.revision,sessionId:'chat-one',assistance:'independent'},new AbortController().signal)
 
+test('a chat-answered follow-up still opens after a restart',async t=>{
+ const dir=await mkdtemp(join(tmpdir(),'learny-dive-restart-'));const project=join(dir,'project');await mkdir(project);await writeFile(join(project,'README.md'),'# P\n\nEntry and flow.')
+ const chat={async ask(){}}
+ let host=await runtime(dir,model(),undefined,{chat})
+ const space=await host.service.createWorkspace({name:'P',goal:'g',kind:'project',materialPath:project})
+ const course=await host.study.generateCourse(space.id)
+ await host.study.deepen({workspaceId:space.id,nodeId:course.nodes[0].id,question:'为什么？',sessionId:'chat-one',mode:'chat'})
+ await host.close()
+ // 重开同一个数据目录：领域 schema 必须接受刚写入的记录，否则整个插件无法激活。
+ host=await runtime(dir,model(),undefined,{chat});t.after(async()=>{await host.close();await rm(dir,{recursive:true,force:true})})
+ const state=await host.study.snapshot(space.id)
+ assert.equal(state.deepDives.length,1);assert.equal(state.deepDives[0].mode,'chat');assert.equal(state.deepDives[0].answer,'')
+})
+
+test('the explanation comes first and a prediction can be written afterwards',async t=>{
+ const {study,space}=await setup(t);let a=await study.start(space.id,'registration')
+ a=await action(study,a,'skipPrediction','')
+ assert.equal(a.stage,'reading')
+ a=await action(study,a,'prediction','读完之后补的猜想')
+ assert.equal(a.stage,'reading')          // 写猜想不再改变阶段
+ assert.equal(a.prediction,'读完之后补的猜想')
+})
+
 test('prediction can be skipped and a follow-up can be answered in the chat',async t=>{
  const asked=[]
  const chat={async ask(request){asked.push(request)}}

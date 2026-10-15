@@ -347,7 +347,9 @@ export class StudyService {
       const course = this.courseForAction(request.workspaceId)
       const node = course.nodes.find(n => n.id === a.nodeId)!
       switch (request.action) {
-        case 'prediction': if (a.stage !== 'prediction') invalid('stage'); a.prediction = limit(request.text,'prediction'); a.stage = 'reading'; break
+        // Prediction is an optional self-check: a learner may write it before the
+        // explanation, or after reading it. It never blocks the lesson.
+        case 'prediction': if (a.stage !== 'prediction' && a.stage !== 'reading') invalid('stage'); a.prediction = limit(request.text,'prediction'); if (a.stage === 'prediction') a.stage = 'reading'; break
         case 'reading': if (a.stage !== 'reading' || !node.sourceIds.includes(request.text)) invalid('source or stage'); if (!a.readingIds.includes(request.text)) a.readingIds.push(request.text); break
         // Prediction-first is a technique, not a gate: a learner who does not want
         // to guess yet can read the explanation first and come back to it.

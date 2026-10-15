@@ -30,6 +30,9 @@ export const studyDomain = defineDomain({ name: 'learny_study', version: 1, tabl
   // Follow-up explanations the learner asked for, newest last.
   deep_dives: domainTable(z.object({
     id: z.uuid(), workspaceId: z.uuid(), nodeId: z.string().min(1).max(64),
-    question: z.string().min(1).max(2000), answer: z.string().min(1).max(12_000), createdAt: z.iso.datetime(),
+    // A question answered in the chat has no text here yet: the answer lives in the
+    // conversation, and the record only points at it.
+    question: z.string().min(1).max(2000), answer: z.string().max(12_000), createdAt: z.iso.datetime(),
+    mode: z.enum(['panel', 'chat']).optional(),
   })),
 } })

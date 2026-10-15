@@ -9,7 +9,7 @@ import remarkGfm from 'remark-gfm'
 import type { KeyboardEvent, MouseEvent } from 'react'
 import type { ClientRemote } from '@deepseek-ai/dsh-api-gateway/client'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
-import type { Attempt, PracticeKind, StudySnapshot } from '../core/study-types.ts'
+import type { Attempt, PracticeKind, Stage, StudySnapshot } from '../core/study-types.ts'
 import type {} from 'dsh-plugin-learny/remote'
 import type {} from './locales.ts'
 
@@ -45,6 +45,7 @@ export function StudyWorkbench({workspaceId,sessionId,api,t,onNote,onGenerateCou
   const [question,setQuestion] = useState('')
   const [pick,setPick] = useState('')
   const lessonRef = useRef<HTMLDivElement|null>(null)
+  const autoSkipped = useRef<string|null>(null)
   const alive=useRef(true)
   const attempt=snapshot?.attempts.find(a=>a.id===selected)
   const node=snapshot?.nodes.find(n=>n.id===attempt?.nodeId)
@@ -72,6 +73,13 @@ export function StudyWorkbench({workspaceId,sessionId,api,t,onNote,onGenerateCou
     if(attempt?.stage!=='reading'||!node||lesson||lessonState.status!=='idle')return
     void loadLesson(false)
   },[attempt?.id,attempt?.stage,node?.id,lesson,lessonState.status])
+  // Opening a node starts at its explanation; the prediction is an optional
+  // self-check inside that step, never a gate in front of it.
+  useEffect(()=>{
+    if(attempt?.stage!=='prediction'||autoSkipped.current===attempt.id)return
+    autoSkipped.current=attempt.id
+    void run(()=>act('skipPrediction',''))
+  },[attempt?.id,attempt?.stage])
   useEffect(()=>{
     const key=attempt?`learny.attempt.${attempt.id}.${attempt.stage}`:null
     let saved='';try{saved=key?localStorage.getItem(key)??'':''}catch{}
@@ -125,7 +133,11 @@ export function StudyWorkbench({workspaceId,sessionId,api,t,onNote,onGenerateCou
   }
   const supportId = useId()
   const routeId = useId()
-  const stages = ['prediction', 'reading', 'practice', 'explanation', 'submitted'] as const
+  // Prediction is optional: the bar only carries it while it is the current step
+  // or the learner actually wrote one.
+  const stages: readonly Stage[] = attempt?.stage === 'prediction' || attempt?.prediction
+    ? ['prediction', 'reading', 'practice', 'explanation', 'submitted']
+    : ['reading', 'practice', 'explanation', 'submitted']
   const stageIndex = stages.indexOf(attempt?.stage ?? 'prediction')
   const stageIntro = t(attempt?.stage==='reading'?'readingIntro':attempt?.stage==='practice'?'practiceIntro':attempt?.stage==='explanation'?'explanationIntro':attempt?.stage==='submitted'?'submittedIntro':'predictionIntro')
   return <section className="study" aria-label={t('study')}>
@@ -171,6 +183,9 @@ export function StudyWorkbench({workspaceId,sessionId,api,t,onNote,onGenerateCou
           {node.briefing&&<div className="briefing"><span className="section-label">{t('nodeBriefing')}</span><p>{node.briefing}</p>{node.sourceIds.length>0&&<p className="muted">{t('nodeMaterials',{count:node.sourceIds.length})}</p>}</div>}
           <div className="prompt"><p>{attempt.retry?node.retryPrediction:node.prediction}</p></div><label>{t('yourPrediction')}<textarea rows={7} value={draft} placeholder={t('predictionPlaceholder')} disabled={busy} onChange={e=>edit(e.target.value)}/></label><div className="task-actions"><button className="primary" disabled={busy||!draft.trim()} onClick={()=>{void run(()=>act('prediction',draft))}}>{t('savePrediction')}</button><button disabled={busy} onClick={()=>{void run(()=>act('skipPrediction',''))}}>{t('skipPrediction')}</button></div></>}
         {attempt.stage==='reading'&&<><p>{t('readingGuide')}</p>
+        {!attempt.prediction&&<details className="predict-box"><summary>{t('predictFirst')}</summary><p className="muted">{attempt.retry?node.retryPrediction:node.prediction}</p>
+          <label>{t('yourPrediction')}<textarea rows={4} value={draft} placeholder={t('predictionPlaceholder')} disabled={busy} onChange={e=>edit(e.target.value)}/></label>
+          <div className="task-actions"><button disabled={busy||!draft.trim()} onClick={()=>{void run(()=>act('prediction',draft))}}>{t('savePrediction')}</button></div></details>}
         {lesson?<div className="lesson" ref={lessonRef} onMouseUp={capturePick} onClick={openCited}><span className="section-label">{t('lessonTitle')}</span><div className="prose"><Markdown remarkPlugins={[remarkGfm]}>{citeLinks(lesson,cited)}</Markdown></div>
           <div className="row between lesson-foot"><small className="muted">{t('lessonOnDemand')}</small><button className="quiet" disabled={busy||lessonBusy} onClick={()=>{void loadLesson(true)}}><Icon name="refresh" />{t('lessonRewrite')}</button></div></div>
           :<div className="lesson lesson-empty" role="status">{lessonState.status==='error'?<><p className="status-error">{t('lessonFailed',{message:lessonState.error??''})}</p><button disabled={busy} onClick={()=>{void loadLesson(false)}}>{t('lessonRetry')}</button></>

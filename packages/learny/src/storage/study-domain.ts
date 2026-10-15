@@ -34,5 +34,7 @@ export const studyDomain = defineDomain({ name: 'learny_study', version: 1, tabl
     // conversation, and the record only points at it.
     question: z.string().min(1).max(2000), answer: z.string().max(12_000), createdAt: z.iso.datetime(),
     mode: z.enum(['panel', 'chat']).optional(),
+    sessionId: z.string().min(1).max(200).optional(),
+    requestId: z.string().min(1).max(200).optional(),
   })),
 } })

@@ -151,6 +151,23 @@ export class StudyService {
       .map(row => ({ ...row }))
       .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
   }
+  /**
+   * Copy the chat's reply into a question that was answered there.
+   *
+   * The question is admitted into the conversation, so the answer is written by the
+   * chat's own turn and lands in the transcript; this reads it back for the panel so
+   * the node does not stay with an empty answer. A question the chat has not reached
+   * yet simply stays pending.
+   */
+  private async collectChatAnswers(workspaceId: string): Promise<void> {
+    if (!this.chat) return
+    for (const dive of this.deepDives(workspaceId)) {
+      if (dive.mode !== 'chat' || dive.answer.trim() || !dive.sessionId || !dive.requestId) continue
+      const answer = await this.chat.answer({ sessionId: dive.sessionId, requestId: dive.requestId }).catch(() => null)
+      if (!answer?.trim()) continue
+      await this.domain.table('deep_dives').put(dive.id, { ...dive, answer: answer.slice(0, 12_000) })
+    }
+  }
   /** Page hashes of a node's sources: a lesson written for other material is stale. */
   private materialKey(course: StudyCourse, nodeId: string): string {
     const node = course.nodes.find(item => item.id === nodeId)
@@ -187,6 +204,7 @@ export class StudyService {
     if ((await this.learning.snapshot(sessionId)).workspaceId !== workspaceId) invalid('chat workspace binding')
   }
   async snapshot(workspaceId: string): Promise<StudySnapshot> {
+    await this.collectChatAnswers(workspaceId)
     const attempts = this.all<Attempt>(workspaceId, 'attempt').sort((a,b) => b.createdAt.localeCompare(a.createdAt))
     const course = this.courseForSnapshot(workspaceId, attempts)
     const workspace = this.learning.workspace(workspaceId)
@@ -287,17 +305,19 @@ export class StudyService {
     const lesson = this.lessonOf(request.workspaceId, node)
     const mode: FollowUpMode = request.mode === 'chat' ? 'chat' : 'panel'
     let answer = ''
+    let requestId: string | undefined
     if (mode === 'chat') {
       if (!this.chat) throw new Error('当前宿主不支持把问题发进对话；可以改用「就地追问」。')
       // The chat's agent answers with its own system prompt, so the tutor's
       // constraints travel with the question instead of being assumed.
       const text = tutorPrompt(workspace.name, node, lesson, await this.nodeMaterial(course, node, request.workspaceId, signal), question)
-      await this.chat.ask({ sessionId: request.sessionId, text }, signal)
+      requestId = await this.chat.ask({ sessionId: request.sessionId, text }, signal)
     } else {
       answer = await answerFollowUp(workspace.name, workspace.goal, node, lesson,
         await this.nodeMaterial(course, node, request.workspaceId, signal), question, this.model, request.sessionId, signal)
     }
-    const record: DeepDive = { id: randomUUID(), workspaceId: request.workspaceId, nodeId: request.nodeId, question, answer, mode, createdAt: new Date().toISOString() }
+    const record: DeepDive = { id: randomUUID(), workspaceId: request.workspaceId, nodeId: request.nodeId, question, answer, mode, createdAt: new Date().toISOString(),
+      ...(mode === 'chat' ? { sessionId: request.sessionId, requestId } : {}) }
     await this.domain.table('deep_dives').put(record.id, { ...record })
     return record
   }

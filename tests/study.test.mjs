@@ -31,7 +31,7 @@ const submit=(study,a)=>study.submit({workspaceId:a.workspaceId,attemptId:a.id,e
 
 test('a chat-answered follow-up still opens after a restart',async t=>{
  const dir=await mkdtemp(join(tmpdir(),'learny-dive-restart-'));const project=join(dir,'project');await mkdir(project);await writeFile(join(project,'README.md'),'# P\n\nEntry and flow.')
- const chat={async ask(){}}
+ const chat={async ask(){return 'req-restart'},async answer(){return null}}
  let host=await runtime(dir,model(),undefined,{chat})
  const space=await host.service.createWorkspace({name:'P',goal:'g',kind:'project',materialPath:project})
  const course=await host.study.generateCourse(space.id)
@@ -54,7 +54,7 @@ test('the explanation comes first and a prediction can be written afterwards',as
 
 test('prediction can be skipped and a follow-up can be answered in the chat',async t=>{
  const asked=[]
- const chat={async ask(request){asked.push(request)}}
+ const chat={async ask(request){asked.push(request);return 'req-1'},async answer({requestId}){return requestId==='req-1'?'对话里的回答：注意 CRI 与运行时分工。':null}}
  const dir=await mkdtemp(join(tmpdir(),'learny-chat-'));const project=join(dir,'project');await mkdir(project);await writeFile(join(project,'README.md'),'# My project\n\nEntry and data flow.')
  const host=await runtime(dir,model(),undefined,{chat});t.after(async()=>{await host.close();await rm(dir,{recursive:true,force:true})})
  const space=await host.service.createWorkspace({name:'My project',goal:'Understand the entry and data flow',kind:'project',materialPath:project})
@@ -70,7 +70,10 @@ test('prediction can be skipped and a follow-up can be answered in the chat',asy
  const dive=await host.study.deepen({workspaceId:space.id,nodeId,question:'为什么工具要留在宿主？',sessionId:'chat-one',mode:'chat'})
  assert.equal(dive.mode,'chat');assert.equal(dive.answer,'');assert.equal(asked.length,1)
  assert.match(asked[0].text,/不要代写实践答案/);assert.match(asked[0].text,/只使用上面给出的资料/);assert.match(asked[0].text,/为什么工具要留在宿主？/)
- assert.equal((await host.study.snapshot(space.id)).deepDives[0].mode,'chat')
+ const first=(await host.study.snapshot(space.id)).deepDives[0]
+ assert.equal(first.mode,'chat')
+ // 面板刷新时把对话里的回答读回来，节点不再停在"已在对话页提问"。
+ assert.match(first.answer,/对话里的回答/)
 
  // 就地追问仍然走 Learny 自己的受约束导师。
  const local=await host.study.deepen({workspaceId:space.id,nodeId,question:'再解释一次',sessionId:'chat-one',mode:'panel'})

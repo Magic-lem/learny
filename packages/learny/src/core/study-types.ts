@@ -53,6 +53,9 @@ export interface DeepDive {
   id: string; workspaceId: string; nodeId: string; question: string; answer: string; createdAt: string;
   /** `chat` means the question was admitted into the dsh chat and answered there. */
   mode?: FollowUpMode;
+  /** Where a chat-answered question was admitted, so its reply can be read back. */
+  sessionId?: string;
+  requestId?: string;
 }
 export interface AttemptAction { workspaceId: string; attemptId: string; expectedRevision: number; action: 'prediction' | 'skipPrediction' | 'reading' | 'hint' | 'startPractice' | 'practice' | 'explanation'; text: string }
 export interface SubmitAttempt { workspaceId: string; attemptId: string; expectedRevision: number; sessionId: string; assistance: 'independent' | 'helped' | 'unknown' }
@@ -69,8 +72,10 @@ export interface ModelGateway { generate(request: ModelRequest, signal: AbortSig
 
 /** The current chat session, as seen by a plugin that wants the learner's question answered there. */
 export interface ChatGateway {
-  /** Admit one message into the session so its own agent answers it in the transcript. */
-  ask(request: { sessionId: string; text: string }, signal: AbortSignal): Promise<void>
+  /** Admit one message into the session; resolves to the admitted request id. */
+  ask(request: { sessionId: string; text: string }, signal: AbortSignal): Promise<string>
+  /** Read the reply that followed an admitted request, once the chat has answered. */
+  answer(request: { sessionId: string; requestId: string }): Promise<string | null>
 }
 
 export interface CachedPage { identity: string; url: string; title: string; excerpt: string; sha256: string; fetchedAt: string; format?: number }

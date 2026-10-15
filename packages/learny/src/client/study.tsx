@@ -195,7 +195,7 @@ export function StudyWorkbench({workspaceId,sessionId,api,t,onNote,onGenerateCou
         <div className="deepen"><span className="section-label">{t('deepenTitle')}</span><p className="muted">{t('deepenIntro')}</p>
           <label>{t('deepenLabel')}<textarea rows={2} value={question} placeholder={t('deepenPlaceholder')} disabled={busy} onChange={e=>setQuestion(e.target.value)}/></label>
           <div className="task-actions"><button className="primary" disabled={busy||!question.trim()} onClick={()=>{void askFollowUp(question,'chat')}}>{t('deepenInChat')}</button><button disabled={busy||!question.trim()} onClick={()=>{void askFollowUp(question,'panel')}}>{t('deepenHere')}</button></div>
-          {deepDives.map(dive=><details key={dive.id} className="dive" open><summary>{dive.question}</summary>{dive.mode==='chat'?<p className="muted">{t('deepenAnsweredInChat')}</p>:<div className="prose"><Markdown remarkPlugins={[remarkGfm]}>{citeLinks(dive.answer,cited)}</Markdown></div>}</details>)}</div>
+          {deepDives.map(dive=><details key={dive.id} className="dive" open><summary>{dive.question}</summary>{dive.answer.trim()?<div className="prose"><Markdown remarkPlugins={[remarkGfm]}>{citeLinks(dive.answer,cited)}</Markdown></div>:<p className="muted">{t('deepenAnsweredInChat')}</p>}</details>)}</div>
         {!!node.sourceIds.length&&<><p className="muted originals-hint">{t('sourceOriginalHint')}</p>
         {node.sourceIds.map(id=>{
           const source=materials.find(s=>s.id===id)

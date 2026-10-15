@@ -1,7 +1,7 @@
 import type { Context } from '@deepseek-ai/cordis'
 import { Remote, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
 import type { StudyService } from '../core/study.ts'
-import type { Attempt, AttemptAction, DeepDive, StudyCourse, StudySnapshot, SubmitAttempt, OrganizeNote, NoteRevision, TutorRequest, TutorMessage } from '../core/study-types.ts'
+import type { Attempt, AttemptAction, DeepDive, NodeTask, StudyCourse, StudySnapshot, SubmitAttempt, OrganizeNote, NoteRevision, TutorRequest, TutorMessage } from '../core/study-types.ts'
 import type { NoteSummary } from '../core/types.ts'
 import type { LearningService } from '../core/service.ts'
 import type { CapabilityStatus, CreateWorkspace, NoteDocument, SaveNote, Snapshot, Workspace } from '../core/types.ts'
@@ -72,6 +72,13 @@ export class LearnyController extends TypertRemoteService {
   async deepen(request: { workspaceId: string; nodeId: string; question: string; sessionId: string; mode?: 'panel' | 'chat' }, signal: AbortSignal): Promise<DeepDive> {
     signal.throwIfAborted()
     return this.study.deepen(request, signal)
+  }
+
+  /** Send one node's lesson task into the conversation; the panel keeps the record. */
+  @Remote('startNode')
+  async startNode(workspaceId: string, nodeId: string, sessionId: string, signal: AbortSignal): Promise<NodeTask> {
+    signal.throwIfAborted()
+    return this.study.startNode(workspaceId, nodeId, sessionId, signal)
   }
   @Remote('startAttempt')
   async startAttempt(workspaceId: string, nodeId: string, signal: AbortSignal): Promise<Attempt> { signal.throwIfAborted(); return this.study.start(workspaceId,nodeId) }

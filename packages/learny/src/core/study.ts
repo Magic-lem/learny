@@ -7,10 +7,10 @@ import type { CapabilityStatus } from './types.ts'
 import { invalid, notFound } from './errors.ts'
 import { builtinCourse, hints } from './course.ts'
 import { buildStarterCourse, planCourse, projectSources, researchTopic } from './course-builder.ts'
-import { answerFollowUp, loadNodeMaterial, writeLesson } from './lesson.ts'
+import { answerFollowUp, loadNodeMaterial, nodeTaskPrompt, writeLesson } from './lesson.ts'
 import type { NodeMaterial } from './lesson.ts'
 import { ResearchLedger } from './research-ledger.ts'
-import type { Attempt, AttemptAction, ChatGateway, DeepDive, Evaluation, FollowUpMode, ModelGateway, NoteRevision, OrganizeNote, ResearchGateway, StudyCourse, StudyNode, StudySnapshot, SubmitAttempt, TutorMessage, TutorRequest } from './study-types.ts'
+import type { Attempt, AttemptAction, ChatGateway, DeepDive, Evaluation, FollowUpMode, ModelGateway, NodeTask, NoteRevision, OrganizeNote, ResearchGateway, StudyCourse, StudyNode, StudySnapshot, SubmitAttempt, TutorMessage, TutorRequest } from './study-types.ts'
 type CourseRecord = StudyCourse & { id: string; workspaceId: string }
 
 const verdictSchema = z.object({ id: z.string(), status: z.enum(['met','not-met','insufficient']),
@@ -168,6 +168,12 @@ export class StudyService {
       await this.domain.table('deep_dives').put(dive.id, { ...dive, answer: answer.slice(0, 12_000) })
     }
   }
+  private nodeTasks(workspaceId: string): NodeTask[] {
+    return [...this.domain.table('node_tasks').entries()].map(([, row]) => row)
+      .filter(row => row.workspaceId === workspaceId)
+      .map(row => ({ ...row }))
+      .sort((a, b) => a.askedAt.localeCompare(b.askedAt))
+  }
   /** Page hashes of a node's sources: a lesson written for other material is stale. */
   private materialKey(course: StudyCourse, nodeId: string): string {
     const node = course.nodes.find(item => item.id === nodeId)
@@ -218,6 +224,7 @@ export class StudyService {
       // Reading material opens once a route exists; `sources` stays the record of
       // what the learner confirmed reading, so the two are not the same list.
       materials: course?.sources ?? [], lessons: this.lessons(workspaceId), deepDives: this.deepDives(workspaceId),
+      nodeTasks: this.nodeTasks(workspaceId),
       research: this.ledger.summary(workspaceId) }
   }
 
@@ -284,6 +291,29 @@ export class StudyService {
       await this.domain.table('lessons').put(key, { workspaceId, nodeId, materialKey, lesson, createdAt: new Date().toISOString() })
       return lesson
     })
+  }
+
+  /**
+   * Start one node in the conversation.
+   *
+   * The lesson is taught in the chat, so this sends the task there (with the node's
+   * orientation, key points and material) and records how to find the answer again.
+   * The panel keeps the structure and the record; the teaching text stays in the chat.
+   */
+  async startNode(workspaceId: string, nodeId: string, sessionId: string, signal = new AbortController().signal): Promise<NodeTask> {
+    signal.throwIfAborted()
+    const workspace = this.learning.workspace(workspaceId)
+    const course = this.storedCourse(workspaceId)
+    if (!course) throw new Error('这个学习空间还没有学习路线，先生成路线再开始。')
+    const node = course.nodes.find(item => item.id === nodeId)
+    if (!node) notFound(nodeId)
+    if (!sessionId.trim()) throw new Error('在对话里开始一节需要当前 dsh 会话。')
+    if (!this.chat) throw new Error('当前宿主不支持把任务发进对话，无法在对话里开始这一节。')
+    const text = nodeTaskPrompt(workspace.name, node, await this.nodeMaterial(course, node, workspaceId, signal))
+    const requestId = await this.chat.ask({ sessionId, text }, signal)
+    const task: NodeTask = { id: randomUUID(), workspaceId, nodeId, sessionId, requestId, askedAt: new Date().toISOString() }
+    await this.domain.table('node_tasks').put(task.id, { ...task })
+    return task
   }
 
   /**

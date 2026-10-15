@@ -132,6 +132,8 @@
 .learny .task-course { display: block; color: var(--ly-muted); font-size: var(--ly-fs-micro); line-height: 1.5; overflow-wrap: anywhere; }
 .learny .task-head h2 { font-size: var(--ly-fs-content); font-weight: 500; line-height: 1.45; }
 .learny .task-head__actions { display: flex; align-items: center; flex-wrap: wrap; gap: 2px; margin-left: auto; }
+.learny .task-head .crumb { flex: 0 0 100%; }
+.learny .task-head .back-to-space { padding: 2px 6px; color: var(--ly-ink-2); }
 .learny .route-chevron { display: inline-block; color: var(--ly-muted); line-height: 1; transition: transform 120ms ease; }
 .learny .route-toggle[aria-expanded=true] .route-chevron { transform: rotate(180deg); }
 .learny .course-outline { padding-bottom: 4px; }
@@ -192,6 +194,12 @@
 .learny .predict-box { border: 1px solid var(--ly-line); border-radius: var(--ly-radius-lg); padding: 8px 12px; }
 .learny .predict-box summary { font-size: var(--ly-fs-meta); color: var(--ly-ink-2); cursor: pointer; }
 .learny .predict-box textarea { width: 100%; margin-top: 6px; }
+.learny .overview-card { border: 1px solid var(--ly-line); border-radius: var(--ly-radius-lg); padding: 12px 14px; background: var(--ly-bg); }
+.learny .overview-card h3 { margin: 6px 0 4px; font-size: var(--ly-fs-content); }
+.learny .overview-card p { margin: 0; max-width: 76ch; overflow-wrap: anywhere; }
+.learny .overview-counts { border: 1px solid var(--ly-line); border-radius: var(--ly-radius-lg); padding: 4px 12px; }
+.learny .node-task { border: 1px solid var(--ly-line); border-radius: var(--ly-radius-lg); padding: 12px 14px; display: grid; gap: 6px; }
+.learny .node-task p { margin: 0; font-size: var(--ly-fs-content); line-height: 1.7; max-width: 76ch; overflow-wrap: anywhere; }
 .learny .key-points ol { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 8px; }
 .learny .key-points li p { margin: 0; font-size: var(--ly-fs-content); line-height: 1.7; overflow-wrap: anywhere; }
 .learny .key-points li small { color: var(--ly-muted); font-size: var(--ly-fs-micro); }

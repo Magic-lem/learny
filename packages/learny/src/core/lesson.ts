@@ -116,3 +116,23 @@ export async function answerFollowUp(workspaceName: string, goal: string, node: 
     return normalizeLessonText(read(repair))
   }
 }
+
+/**
+ * The message Learny sends to the conversation when the learner starts a node.
+ *
+ * The lesson is taught in the chat, so this prompt carries everything the agent
+ * needs to teach this node well — orientation, the node's own key points, and the
+ * material it may use — plus the shape the panel can summarize afterwards. It asks
+ * for the lesson itself, not for the learner's answer.
+ */
+export function nodeTaskPrompt(workspaceName: string, node: StudyNode, material: NodeMaterial[]): string {
+  const parts = [
+    `【Learny 开始一节】学习空间「${workspaceName}」，本节：${node.title}`,
+    node.briefing ? `本节导读：${node.briefing}` : '',
+    node.keyPoints?.length ? `本节要点（供你参考，不要逐条复述）：\n${node.keyPoints.map(point => `- ${point.text}（${point.sourceId}）`).join('\n')}` : '',
+    material.length ? `可用资料（优先使用，不要编造资料之外的内容）：\n${material.map(item => `- [${item.id}] ${item.title} ${item.url}`).join('\n')}` : '',
+    '请按这个结构讲这一节，面向已经会写代码但刚接触这个主题的人：\n1. 这一节解决什么问题（为什么需要它）\n2. 关键概念与工作机制（把容易误解的地方点出来）\n3. 一个学习者可以自己动手验证的下一步',
+    '用中文 Markdown，小节标题加粗即可，不要写总结性客套话；引用依据时在句末标注 [资料id]。讲解是给学习者读的，不要替学习者完成实践题。',
+  ]
+  return parts.filter(Boolean).join('\n\n')
+}

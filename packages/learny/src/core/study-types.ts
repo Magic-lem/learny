@@ -39,6 +39,8 @@ export interface StudySnapshot {
   lessons?: Record<string, string>;
   /** Follow-up explanations asked for in this workspace. */
   deepDives?: DeepDive[];
+  /** Node starts already sent to the conversation, newest last. */
+  nodeTasks?: NodeTask[];
   /** External-call usage for topic research, so a spent budget is visible. */
   research?: ResearchSummary | null;
 }
@@ -57,6 +59,8 @@ export interface DeepDive {
   sessionId?: string;
   requestId?: string;
 }
+/** One "start this node in the chat" request: the conversation is where it is answered. */
+export interface NodeTask { id: string; workspaceId: string; nodeId: string; sessionId: string; requestId: string; askedAt: string }
 export interface AttemptAction { workspaceId: string; attemptId: string; expectedRevision: number; action: 'prediction' | 'skipPrediction' | 'reading' | 'hint' | 'startPractice' | 'practice' | 'explanation'; text: string }
 export interface SubmitAttempt { workspaceId: string; attemptId: string; expectedRevision: number; sessionId: string; assistance: 'independent' | 'helped' | 'unknown' }
 export type RevisionMode = 'format' | 'polish' | 'supplement'

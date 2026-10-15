@@ -29,6 +29,30 @@ async function action(study,a,kind,text=''){return study.act({workspaceId:a.work
 async function answered(study,id,hint=false){let a=await study.start(id,'registration');a=await action(study,a,'prediction','I predict execute stays local.');a=await action(study,a,'reading','schemas');a=await action(study,a,'startPractice');if(hint)a=await action(study,a,'hint');a=await action(study,a,'practice','My trace: input execute and timeoutMs are excluded. JSON {name:"echo",description:"echo",parameters:{}}.');a=await action(study,a,'explanation','schemaOf projects fields. The host executes functions; the model selects names.');return a}
 const submit=(study,a)=>study.submit({workspaceId:a.workspaceId,attemptId:a.id,expectedRevision:a.revision,sessionId:'chat-one',assistance:'independent'},new AbortController().signal)
 
+test('a node is started in the chat and the panel keeps only its record',async t=>{
+ const asked=[]
+ const chat={async ask(request){asked.push(request);return `req-${asked.length}`},async answer(){return null}}
+ const dir=await mkdtemp(join(tmpdir(),'learny-start-node-'));const project=join(dir,'project');await mkdir(project);await writeFile(join(project,'README.md'),'# P\n\nEntry and flow.')
+ const host=await runtime(dir,model(),undefined,{chat});t.after(async()=>{await host.close();await rm(dir,{recursive:true,force:true})})
+ const space=await host.service.createWorkspace({name:'Kubernetes 基础学习',goal:'理解架构',kind:'project',materialPath:project})
+ const course=await host.study.generateCourse(space.id)
+ const nodeId=course.nodes[0].id
+
+ const task=await host.study.startNode(space.id,nodeId,'chat-one')
+ assert.equal(asked.length,1)
+ // 发进对话的是"讲这一节"的任务，带着导读、要点和资料，并要求给出可自行验证的下一步
+ assert.match(asked[0].text,/开始一节/)
+ assert.match(asked[0].text,/可自己动手验证的下一步|自己动手验证的下一步/)
+ assert.match(asked[0].text,new RegExp(course.nodes[0].title))
+ assert.equal(task.nodeId,nodeId);assert.equal(task.sessionId,'chat-one')
+
+ const again=await host.study.startNode(space.id,nodeId,'chat-one')
+ const state=await host.study.snapshot(space.id)
+ assert.equal(asked.length,2)
+ assert.deepEqual(state.nodeTasks.map(item=>item.requestId),['req-1','req-2'])
+ assert.equal(state.nodeTasks.at(-1).id,again.id)
+})
+
 test('a chat-answered follow-up still opens after a restart',async t=>{
  const dir=await mkdtemp(join(tmpdir(),'learny-dive-restart-'));const project=join(dir,'project');await mkdir(project);await writeFile(join(project,'README.md'),'# P\n\nEntry and flow.')
  const chat={async ask(){return 'req-restart'},async answer(){return null}}

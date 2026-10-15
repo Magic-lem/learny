@@ -41,19 +41,20 @@ export function StudyWorkbench({workspaceId,sessionId,api,t,onNote,onGenerateCou
   const [assistance,setAssistance] = useState<Attempt['assistance']>('unknown')
   const [busy,setBusy] = useState(false)
   const [error,setError] = useState('')
-  const [lessonState,setLessonState] = useState<{status:'idle'|'loading'|'error';error?:string}>({status:'idle'})
   const [question,setQuestion] = useState('')
-  const [pick,setPick] = useState('')
-  const lessonRef = useRef<HTMLDivElement|null>(null)
   const autoSkipped = useRef<string|null>(null)
   const alive=useRef(true)
   const attempt=snapshot?.attempts.find(a=>a.id===selected)
   const node=snapshot?.nodes.find(n=>n.id===attempt?.nodeId)
   const materials=snapshot?.materials??[]
-  const lesson=node?(snapshot?.lessons?.[node.id]??node.lesson??''):''
   const deepDives=(snapshot?.deepDives??[]).filter(item=>item.nodeId===node?.id)
+  const nodeTask=(snapshot?.nodeTasks??[]).filter(item=>item.nodeId===node?.id).at(-1)
+  // "今天从这里继续": the first node without a finished evaluation.
+  const nextNode=snapshot?.nodes.find(item=>!snapshot.attempts.some(a=>a.nodeId===item.id&&a.evaluation))??snapshot?.nodes[0]
+  /** A node already in progress wins over the next unstarted one. */
+  const activeAttempt=snapshot?.attempts.find(item=>!item.evaluation)
+  const focusNode=activeAttempt?snapshot?.nodes.find(item=>item.id===activeAttempt.nodeId):nextNode
   const cited=new Set(node?.sourceIds??[])
-  const lessonBusy=lessonState.status==='loading'
   /**
    * What to say when a follow-up has no answer yet. Saying "the answer is in the
    * chat" is only true when this conversation is the one that got the question.
@@ -72,16 +73,13 @@ export function StudyWorkbench({workspaceId,sessionId,api,t,onNote,onGenerateCou
     if (!alive.current) return
     setSnapshot(next)
     const compatible = next.attempts.filter(item => next.nodes.some(candidate => candidate.id === item.nodeId))
-    setSelected(current => prefer && compatible.some(item => item.id === prefer) ? prefer : current && compatible.some(item => item.id === current) ? current : compatible[0]?.id ?? null)
+    // The space overview is the default screen; a node screen only opens when the
+    // learner picks a node, so a fresh load never drops them into a task.
+    setSelected(current => prefer && compatible.some(item => item.id === prefer) ? prefer : current && compatible.some(item => item.id === current) ? current : null)
   }
   async function run(operation:()=>Promise<void>) { setBusy(true);setError('');try {await operation()}catch(e){const message=e instanceof Error?e.message:String(e);if(alive.current)setError(message.includes('DEEPSEEK_API_KEY')||message.includes('WEB_PROVIDER_CREDENTIAL_MISSING')?t('webSearchNotConfigured'):message.includes('LEARNY_RESEARCH_BUDGET')?t('researchBudgetSpent'):message)}finally{if(alive.current)setBusy(false)} }
   async function generateCourse() { await onGenerateCourse(); await refresh() }
   useEffect(()=>{alive.current=true;void run(()=>refresh());return()=>{alive.current=false}},[workspaceId,sessionId])
-  // Teaching text is written when a node is first read, not with the route.
-  useEffect(()=>{
-    if(attempt?.stage!=='reading'||!node||lesson||lessonState.status!=='idle')return
-    void loadLesson(false)
-  },[attempt?.id,attempt?.stage,node?.id,lesson,lessonState.status])
   // Opening a node starts at its explanation; the prediction is an optional
   // self-check inside that step, never a gate in front of it.
   useEffect(()=>{
@@ -105,27 +103,30 @@ export function StudyWorkbench({workspaceId,sessionId,api,t,onNote,onGenerateCou
     if(saved.startsWith('['))try{const parsed=JSON.parse(saved);if(Array.isArray(parsed))structured=parsed.map(value=>String(value??''))}catch{}
     setPractice(['','',''].map((_,index)=>structured?.[index]??''))
     setDraft(structured?'':saved|| (attempt?.stage==='explanation'?attempt.explanation:''));setAssistance(attempt?.assistance??'unknown')
-    setLessonState({status:'idle'});setPick('')
+    setQuestion('')
   },[selected,attempt?.stage])
   function edit(text:string){setDraft(text);if(attempt)try{localStorage.setItem(`learny.attempt.${attempt.id}.${attempt.stage}`,text)}catch{}}
   function editPractice(index:number,text:string){const next=practice.map((value,at)=>at===index?text:value);setPractice(next);if(attempt)try{localStorage.setItem(`learny.attempt.${attempt.id}.${attempt.stage}`,JSON.stringify(next))}catch{}}
-  /** Ask for this node's teaching text, which is written the first time it is opened. */
-  async function loadLesson(rewrite:boolean){
+  /** Send this node's lesson task into the conversation and record where it went. */
+  async function startNode(){
     if(!node)return
-    setLessonState({status:'loading'})
-    try{await value(api.nodeLesson(workspaceId,node.id,sessionId,rewrite,signal()));await refresh();setLessonState({status:'idle'})}
-    catch(e){setLessonState({status:'error',error:e instanceof Error?e.message:String(e)})}
+    await run(async()=>{await value(api.startNode(workspaceId,node.id,sessionId,signal()));await refresh()})
+  }
+  /** Overview shortcut: open the next node and start it in the conversation in one go. */
+  async function startNext(){
+    const target=nextNode
+    if(!target)return
+    await run(async()=>{
+      const started=await value(api.startAttempt(workspaceId,target.id,signal()))
+      await refresh(started.id)
+      await value(api.startNode(workspaceId,target.id,sessionId,signal()))
+      await refresh(started.id)
+    })
   }
   async function askFollowUp(text:string,mode:'panel'|'chat'='chat'){
     const value_=text.trim()
     if(!node||!value_)return
     await run(async()=>{await value(api.deepen({workspaceId,nodeId:node.id,question:value_,sessionId,mode},signal()));if(value_===question.trim())setQuestion('');await refresh()})
-  }
-  /** Selection inside the lesson is the "this part" the learner wants explained. */
-  function capturePick(){
-    const selection=typeof window==='undefined'?null:window.getSelection()
-    const text=selection?.toString().trim()??''
-    setPick(text&&selection?.anchorNode&&lessonRef.current?.contains(selection.anchorNode)?text.slice(0,600):'')
   }
   /** A citation jumps to its source row; expand that row so the link is visible. */
   function openCited(event:MouseEvent<HTMLDivElement>){
@@ -160,19 +161,27 @@ export function StudyWorkbench({workspaceId,sessionId,api,t,onNote,onGenerateCou
   const stageIntro = t(attempt?.stage==='reading'?'readingIntro':attempt?.stage==='practice'?'practiceIntro':attempt?.stage==='explanation'?'explanationIntro':attempt?.stage==='submitted'?'submittedIntro':'predictionIntro')
   return <section className="study" aria-label={t('study')}>
     <div className="task-head">
+      {attempt&&<div className="crumb"><button className="quiet back-to-space" disabled={busy} onClick={()=>{setSelected(null);setRouteExpanded(false)}}>← {t('backToSpace')}</button></div>}
       {(node||snapshot?.course)&&<div className="task-head__title">
         {node&&<span className="task-course">{snapshot?.course?.title??''}</span>}
         <h2>{node?.title??snapshot?.course?.title??''}</h2>
       </div>}
       <div className="task-head__actions">
-        {snapshot?.course ? <button className="route-toggle" aria-expanded={!attempt||routeExpanded} aria-controls={routeId} disabled={busy} onClick={()=>setRouteExpanded(!routeExpanded)}>
+        {snapshot?.course&&attempt?<button className="route-toggle" aria-expanded={routeExpanded} aria-controls={routeId} disabled={busy} onClick={()=>setRouteExpanded(!routeExpanded)}>
           {t('learningRoute')}<span className="count">{snapshot.nodes.length}</span><span className="route-chevron" aria-hidden="true">⌄</span>
-        </button> : snapshot ? <span className="course-status">{t('courseNotReady')}</span> : null}
+        </button>:snapshot&&!snapshot.course?<span className="course-status">{t('courseNotReady')}</span>:null}
         {snapshot?.courseOrigin === 'legacy' && <button className="quiet route-migrate" disabled={busy} onClick={()=>{void run(generateCourse)}}>{t('replaceLegacyCourse')}</button>}
         {node&&<button className="quiet" disabled={busy} onClick={()=>{void run(()=>onNote(`${node.title} · ${t('taskNote')}`))}}><Icon name="note" />{t('taskNote')}</button>}
         <button className="quiet" disabled={busy} onClick={()=>{void run(()=>refresh())}}><Icon name="refresh" />{t('refresh')}</button>
       </div>
     </div>
+    {snapshot?.course && !attempt && <div className="overview-card"><span className="section-label">{activeAttempt?t('todayNow'):t('todayNext')}</span>
+      <h3>{focusNode?.title??''}</h3>
+      <p className="muted">{focusNode?.briefing?focusNode.briefing.slice(0,110):t('todayNextHint')}</p>
+      <div className="task-actions">{activeAttempt
+        ? <button className="primary" disabled={busy} onClick={()=>{setRouteExpanded(true);setSelected(activeAttempt.id)}}>{t('todayBack')}</button>
+        : <button className="primary" disabled={busy||!nextNode} onClick={()=>{void startNext()}}>{t('nodeStart')}</button>}
+        <button disabled={busy} onClick={()=>setRouteExpanded(!routeExpanded)}>{t('openMap')}</button></div></div>}
     {snapshot?.course ? <div id={routeId} className="course-outline" hidden={!!attempt&&!routeExpanded}>
       <p className="muted">{snapshot.course.intro}</p>
       <div className="node-map" aria-label={t('learningRoute')}>{snapshot?.nodes.map(n=>{
@@ -190,6 +199,11 @@ export function StudyWorkbench({workspaceId,sessionId,api,t,onNote,onGenerateCou
       {error&&<span className="status-error" role="alert">{error}</span>}
       {!error&&busy&&<span>{t('working')}</span>}
     </div>
+    {snapshot?.course && !attempt && <div className="overview-counts">
+      <div className="kv"><span>{t('overviewMaterial')}</span><span className="muted">{snapshot.materials?.length??0}</span></div>
+      <div className="kv"><span>{t('overviewAttempts')}</span><span className="muted">{snapshot.attempts.length}</span></div>
+      <div className="kv"><span>{t('overviewResearch')}</span><span className="muted">{snapshot.research?`${snapshot.research.used} / ${snapshot.research.limit}`:'—'}</span></div>
+    </div>}
     {attempt&&node?<article className="task">
       <div className="progress">
         <ol className="progress-track" aria-label={t('taskProgress')}>{stages.map((stage,i)=><li key={stage} aria-current={attempt.stage===stage?'step':undefined} className={attempt.stage===stage?'cur':i<stageIndex?'done':''}><span className="sr-only">{t(stage)}</span></li>)}</ol>
@@ -204,11 +218,7 @@ export function StudyWorkbench({workspaceId,sessionId,api,t,onNote,onGenerateCou
         {!attempt.prediction&&<details className="predict-box"><summary>{t('predictFirst')}</summary><p className="muted">{attempt.retry?node.retryPrediction:node.prediction}</p>
           <label>{t('yourPrediction')}<textarea rows={4} value={draft} placeholder={t('predictionPlaceholder')} disabled={busy} onChange={e=>edit(e.target.value)}/></label>
           <div className="task-actions"><button disabled={busy||!draft.trim()} onClick={()=>{void run(()=>act('prediction',draft))}}>{t('savePrediction')}</button></div></details>}
-        {lesson?<div className="lesson" ref={lessonRef} onMouseUp={capturePick} onClick={openCited}><span className="section-label">{t('lessonTitle')}</span><div className="prose"><Markdown remarkPlugins={[remarkGfm]}>{citeLinks(lesson,cited)}</Markdown></div>
-          <div className="row between lesson-foot"><small className="muted">{t('lessonOnDemand')}</small><button className="quiet" disabled={busy||lessonBusy} onClick={()=>{void loadLesson(true)}}><Icon name="refresh" />{t('lessonRewrite')}</button></div></div>
-          :<div className="lesson lesson-empty" role="status">{lessonState.status==='error'?<><p className="status-error">{t('lessonFailed',{message:lessonState.error??''})}</p><button disabled={busy} onClick={()=>{void loadLesson(false)}}>{t('lessonRetry')}</button></>
-            :<><p className="muted">{t('lessonLoading')}</p>{!lessonBusy&&<button disabled={busy} onClick={()=>{void loadLesson(false)}}>{t('lessonRetry')}</button>}</>}</div>}
-        {!!pick&&<div className="pick-bar"><span>{t('selectionHint',{count:pick.length})}</span><button className="quiet" disabled={busy} onClick={()=>{void askFollowUp(t('selectionAsk',{text:pick}));setPick('')}}>{t('deepenSelection')}</button><button className="quiet" disabled={busy} onClick={()=>setPick('')}>{t('deepenClear')}</button></div>}
+        {nodeTask?<div className="node-task"><div className="row between"><span className="section-label">{t('nodeInChat')}</span><small className="muted">{t('nodeInChatAt',{time:new Date(nodeTask.askedAt).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})})}</small></div><p className="muted">{t('nodeInChatHint')}</p><div className="task-actions"><button disabled={busy} onClick={()=>{void startNode()}}>{t('nodeInChatAgain')}</button></div></div>:<div className="node-task"><span className="section-label">{t('nodeStartTitle')}</span><p>{node.briefing??node.prediction}</p><p className="muted">{t('nodeStartHint')}</p><div className="task-actions"><button className="primary" disabled={busy} onClick={()=>{void startNode()}}>{t('nodeStart')}</button><button disabled={busy||!question.trim()} onClick={()=>{void askFollowUp(question,'chat')}}>{t('deepenInChat')}</button></div></div>}
         {!!node.keyPoints?.length&&<div className="key-points"><span className="section-label">{t('keyPoints')}</span><ol>{node.keyPoints.map(point=><li key={point.text}><p>{point.text}</p><small>{materials.find(source=>source.id===point.sourceId)?.title??point.sourceId}</small></li>)}</ol></div>}
         <div className="deepen"><span className="section-label">{t('deepenTitle')}</span><p className="muted">{t('deepenIntro')}</p>
           <label>{t('deepenLabel')}<textarea rows={2} value={question} placeholder={t('deepenPlaceholder')} disabled={busy} onChange={e=>setQuestion(e.target.value)}/></label>
@@ -223,7 +233,7 @@ export function StudyWorkbench({workspaceId,sessionId,api,t,onNote,onGenerateCou
           return <details key={id} id={`learny-source-${id}`} className="source"><summary><span>{source?.title??id}</span><span className={`source-state ${read?'is-read':''}`}>{read?t('readRecorded'):t('toRead')}</span></summary><div className="source-content">
             {source&&<a href={source.url} target="_blank" rel="noreferrer" onClick={()=>{if(!read)void run(()=>act('reading',id))}}>{source.path}<Icon name="arrow" /></a>}
             <div className="row between source-footer">{source&&<small title={source.sha256}>{t('sourceVersion',{version:source.sha256.slice(0,12)})}</small>}{!read&&<button disabled={busy} onClick={()=>{void run(()=>act('reading',id))}}>{t('openMaterial')}<Icon name="check" /></button>}</div></div></details>
-        })}</>}<div className="task-actions"><span className="muted">{t('readingProgress',{read:node.sourceIds.filter(id=>attempt.readingIds.includes(id)).length,total:node.sourceIds.length})}</span><button className="primary" disabled={busy||!lesson} onClick={()=>{void run(()=>act('startPractice',''))}}>{t('beginPractice')}</button></div></>}
+        })}</>}<div className="task-actions"><span className="muted">{t('readingProgress',{read:node.sourceIds.filter(id=>attempt.readingIds.includes(id)).length,total:node.sourceIds.length})}</span><button className="primary" disabled={busy} onClick={()=>{void run(()=>act('startPractice',''))}}>{t('beginPractice')}</button></div></>}
         {attempt.stage==='practice'&&<><div className="prompt"><p>{attempt.retry?node.retryPractice:node.practice}</p></div>
           {practiceFields.length?<div className="practice-fields">{practiceFields.map((key,index)=><label key={key}>{t(key)}<textarea rows={index===0?4:3} disabled={busy} value={practice[index]??''} onChange={e=>editPractice(index,e.target.value)}/></label>)}</div>
             :<label>{t('practiceEvidence')}<textarea rows={9} placeholder={t('practicePlaceholder')} disabled={busy} value={draft} onChange={e=>edit(e.target.value)}/></label>}

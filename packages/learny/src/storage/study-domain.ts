@@ -37,4 +37,10 @@ export const studyDomain = defineDomain({ name: 'learny_study', version: 1, tabl
     sessionId: z.string().min(1).max(200).optional(),
     requestId: z.string().min(1).max(200).optional(),
   })),
+  // One "start this node in the chat" request per node. The panel sends the task and
+  // the conversation answers it; this is how that answer is found again.
+  node_tasks: domainTable(z.object({
+    id: z.uuid(), workspaceId: z.uuid(), nodeId: z.string().min(1).max(64),
+    sessionId: z.string().min(1).max(200), requestId: z.string().min(1).max(200), askedAt: z.iso.datetime(),
+  })),
 } })

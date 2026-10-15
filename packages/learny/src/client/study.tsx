@@ -9,7 +9,7 @@ import remarkGfm from 'remark-gfm'
 import type { KeyboardEvent, MouseEvent } from 'react'
 import type { ClientRemote } from '@deepseek-ai/dsh-api-gateway/client'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
-import type { Attempt, PracticeKind, Stage, StudySnapshot } from '../core/study-types.ts'
+import type { Attempt, DeepDive, PracticeKind, Stage, StudySnapshot } from '../core/study-types.ts'
 import type {} from 'dsh-plugin-learny/remote'
 import type {} from './locales.ts'
 
@@ -54,6 +54,15 @@ export function StudyWorkbench({workspaceId,sessionId,api,t,onNote,onGenerateCou
   const deepDives=(snapshot?.deepDives??[]).filter(item=>item.nodeId===node?.id)
   const cited=new Set(node?.sourceIds??[])
   const lessonBusy=lessonState.status==='loading'
+  /**
+   * What to say when a follow-up has no answer yet. Saying "the answer is in the
+   * chat" is only true when this conversation is the one that got the question.
+   */
+  function diveNotice(dive:DeepDive):string{
+    if(dive.mode!=='chat')return t('deepenEmpty')
+    if(dive.sessionId===undefined)return t('deepenUnlinked')
+    return dive.sessionId===sessionId?t('deepenPending'):t('deepenOtherSession')
+  }
   const practiceFields=PRACTICE_FIELDS[node?.practiceKind??'mixed']??[]
   const practiceText=practiceFields.map((key,index)=>practice[index]?.trim()?`${t(key)}：\n${practice[index].trim()}`:'').filter(Boolean).join('\n\n')
   const practiceReady=practiceFields.length?Boolean(practice[0]?.trim()&&practice[practiceFields.length-1]?.trim()):Boolean(draft.trim())
@@ -80,6 +89,15 @@ export function StudyWorkbench({workspaceId,sessionId,api,t,onNote,onGenerateCou
     autoSkipped.current=attempt.id
     void run(()=>act('skipPrediction',''))
   },[attempt?.id,attempt?.stage])
+  // A question admitted into this conversation is answered by it: poll until the
+  // reply lands, so the learner does not have to press Refresh to see it.
+  const awaitingChat=deepDives.some(dive=>dive.mode==='chat'&&!dive.answer.trim()&&dive.sessionId===sessionId)
+  useEffect(()=>{
+    if(!awaitingChat)return
+    const timer=setInterval(()=>{void refresh()},10000)
+    const stop=setTimeout(()=>clearInterval(timer),360000)
+    return()=>{clearInterval(timer);clearTimeout(stop)}
+  },[awaitingChat,sessionId])
   useEffect(()=>{
     const key=attempt?`learny.attempt.${attempt.id}.${attempt.stage}`:null
     let saved='';try{saved=key?localStorage.getItem(key)??'':''}catch{}
@@ -195,7 +213,9 @@ export function StudyWorkbench({workspaceId,sessionId,api,t,onNote,onGenerateCou
         <div className="deepen"><span className="section-label">{t('deepenTitle')}</span><p className="muted">{t('deepenIntro')}</p>
           <label>{t('deepenLabel')}<textarea rows={2} value={question} placeholder={t('deepenPlaceholder')} disabled={busy} onChange={e=>setQuestion(e.target.value)}/></label>
           <div className="task-actions"><button className="primary" disabled={busy||!question.trim()} onClick={()=>{void askFollowUp(question,'chat')}}>{t('deepenInChat')}</button><button disabled={busy||!question.trim()} onClick={()=>{void askFollowUp(question,'panel')}}>{t('deepenHere')}</button></div>
-          {deepDives.map(dive=><details key={dive.id} className="dive" open><summary>{dive.question}</summary>{dive.answer.trim()?<div className="prose"><Markdown remarkPlugins={[remarkGfm]}>{citeLinks(dive.answer,cited)}</Markdown></div>:<p className="muted">{t('deepenAnsweredInChat')}</p>}</details>)}</div>
+          {deepDives.map(dive=><details key={dive.id} className="dive" open><summary>{dive.question}</summary>{dive.answer.trim()
+            ? <div className="prose"><Markdown remarkPlugins={[remarkGfm]}>{citeLinks(dive.answer,cited)}</Markdown></div>
+            : <p className="muted">{diveNotice(dive)}</p>}</details>)}</div>
         {!!node.sourceIds.length&&<><p className="muted originals-hint">{t('sourceOriginalHint')}</p>
         {node.sourceIds.map(id=>{
           const source=materials.find(s=>s.id===id)

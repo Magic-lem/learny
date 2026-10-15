@@ -41,6 +41,8 @@ export interface StudySnapshot {
   deepDives?: DeepDive[];
   /** Node starts already sent to the conversation, newest last. */
   nodeTasks?: NodeTask[];
+  /** 讲解里穿插过的块，供节点页回看与导出复用。 */
+  blocks?: StudyBlock[];
   /** External-call usage for topic research, so a spent budget is visible. */
   research?: ResearchSummary | null;
 }
@@ -61,6 +63,8 @@ export interface DeepDive {
 }
 /** One "start this node in the chat" request: the conversation is where it is answered. */
 export interface NodeTask { id: string; workspaceId: string; nodeId: string; sessionId: string; requestId: string; askedAt: string }
+/** 讲解里穿插的块，按出现次序回收：结构图、自测、要点卡。 */
+export interface StudyBlock { id: string; workspaceId: string; nodeId: string; kind: string; payload: string; at: string }
 export interface AttemptAction { workspaceId: string; attemptId: string; expectedRevision: number; action: 'prediction' | 'skipPrediction' | 'reading' | 'hint' | 'startPractice' | 'practice' | 'explanation'; text: string }
 export interface SubmitAttempt { workspaceId: string; attemptId: string; expectedRevision: number; sessionId: string; assistance: 'independent' | 'helped' | 'unknown' }
 export type RevisionMode = 'format' | 'polish' | 'supplement'

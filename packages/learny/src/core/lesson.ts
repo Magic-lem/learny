@@ -147,16 +147,42 @@ export function nodeTaskPrompt(workspaceName: string, node: StudyNode, material:
 export function fenceContract(): string {
   return [
     '讲解里可以穿插 ```learny 围栏块，数量与位置都不限制，块与块之间照常用文字接着讲。',
-    '块体是一个 JSON 对象，只用下面两种：',
-    '1) 自测（讲完一个容易混淆的点后，让学习者当场判断）：',
+    '块体是一个 JSON 对象，只用下面三种：',
+    '1) 结构图/流程图（讲「有哪些部分」「怎么走」时优先用图，不要只用文字堆）：',
+    '```learny',
+    '{"block":"diagram","title":"控制平面与节点","nodes":[{"id":"api","label":"API Server","group":"控制平面"},{"id":"kubelet","label":"kubelet","group":"节点"}],"edges":[{"from":"api","to":"kubelet","label":"下发 Pod 规格"}]}',
+    '```',
+    '2) 自测（讲完一个容易混淆的点后，让学习者当场判断）：',
     '```learny',
     '{"block":"quiz","title":"这一节的自测","questions":[{"q":"问题","options":["选项A","选项B"],"answer":1,"explain":"为什么是它"}]}',
     '```',
-    '2) 要点卡（把一段容易散的结论收拢成一条，正文里不必再重复）：',
+    '3) 要点卡（把一段容易散的结论收拢成一条，正文里不必再重复）：',
     '```learny',
     '{"block":"note","title":"要点标题","body":"一两句话，段间空行分段"}',
     '```',
-    '要求：answer 是从 0 开始的正确选项下标；explain 必须解释为什么，不要只写"正确"；',
+    '要求：图的 nodes 每个要有唯一 id，edges 只引用已有的 id；节点文字要短（不超过 12 个字），',
+    '细节放正文里写，不要塞进框；一张图 3~10 个节点，再多就拆成两张；',
+    'answer 是从 0 开始的正确选项下标；explain 必须解释为什么，不要只写"正确"；',
     '每节最多 2~3 个块，讲不清的地方用文字补，不要为了好看硬塞块；JSON 必须能被直接解析，不要加注释或多余文字。',
   ].join('\n')
+}
+
+/**
+ * 从一段讲解里取出 ```learny 围栏。块在对话里渲染，宿主侧只关心载荷本身：
+ * 这里按出现次序解析，认得出来的才回收，解析不了的原样跳过。
+ */
+export function fencesIn(markdown: string): { kind: string; payload: string }[] {
+  const found: { kind: string; payload: string }[] = []
+  const pattern = /```learny[^\n]*\n([\s\S]*?)```/g
+  let match: RegExpExecArray | null
+  while ((match = pattern.exec(markdown)) !== null) {
+    const body = match[1].trim()
+    if (!body.startsWith('{')) continue
+    try {
+      const value = JSON.parse(body) as { block?: unknown }
+      if (typeof value.block !== 'string' || !value.block) continue
+      found.push({ kind: value.block, payload: body })
+    } catch { /* 写坏了就当作普通文字，不回收 */ }
+  }
+  return found
 }

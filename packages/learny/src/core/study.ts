@@ -7,10 +7,10 @@ import type { CapabilityStatus } from './types.ts'
 import { invalid, notFound } from './errors.ts'
 import { builtinCourse, hints } from './course.ts'
 import { buildStarterCourse, planCourse, projectSources, researchTopic } from './course-builder.ts'
-import { answerFollowUp, loadNodeMaterial, nodeTaskPrompt, writeLesson } from './lesson.ts'
+import { answerFollowUp, fencesIn, loadNodeMaterial, nodeTaskPrompt, writeLesson } from './lesson.ts'
 import type { NodeMaterial } from './lesson.ts'
 import { ResearchLedger } from './research-ledger.ts'
-import type { Attempt, AttemptAction, ChatGateway, DeepDive, Evaluation, FollowUpMode, ModelGateway, NodeTask, NoteRevision, OrganizeNote, ResearchGateway, StudyCourse, StudyNode, StudySnapshot, SubmitAttempt, TutorMessage, TutorRequest } from './study-types.ts'
+import type { Attempt, AttemptAction, ChatGateway, DeepDive, Evaluation, FollowUpMode, ModelGateway, NodeTask, NoteRevision, OrganizeNote, ResearchGateway, StudyBlock, StudyCourse, StudyNode, StudySnapshot, SubmitAttempt, TutorMessage, TutorRequest } from './study-types.ts'
 type CourseRecord = StudyCourse & { id: string; workspaceId: string }
 
 const verdictSchema = z.object({ id: z.string(), status: z.enum(['met','not-met','insufficient']),
@@ -168,6 +168,32 @@ export class StudyService {
       await this.domain.table('deep_dives').put(dive.id, { ...dive, answer: answer.slice(0, 12_000) })
     }
   }
+  /**
+   * 讲解里的块要能在节点页回看：把每节任务的回答重新读一遍，按出现次序回收载荷。
+   * 与追问回答走同一条通道，所以回答还没落地时这一轮就先不回收，下次快照再补。
+   */
+  private async collectBlocks(workspaceId: string): Promise<void> {
+    if (!this.chat) return
+    for (const task of this.nodeTasks(workspaceId)) {
+      if (!task.sessionId || !task.requestId) continue
+      const answer = await this.chat.answer({ sessionId: task.sessionId, requestId: task.requestId }).catch(() => null)
+      if (!answer) continue
+      for (const [index, block] of fencesIn(answer).entries()) {
+        const id = `${workspaceId}:${task.nodeId}:${index}`
+        const existing = this.domain.table('node_blocks').get(id) as StudyBlock | undefined
+        if (existing && existing.payload === block.payload) continue
+        await this.domain.table('node_blocks').put(id, {
+          id, workspaceId, nodeId: task.nodeId, kind: block.kind, payload: block.payload,
+          at: new Date().toISOString(),
+        } satisfies StudyBlock)
+      }
+    }
+  }
+  private blocks(workspaceId: string): StudyBlock[] {
+    return [...this.domain.table('node_blocks').entries()].map(([, row]) => row as StudyBlock)
+      .filter(row => row.workspaceId === workspaceId)
+      .sort((a, b) => a.id.localeCompare(b.id))
+  }
   private nodeTasks(workspaceId: string): NodeTask[] {
     return [...this.domain.table('node_tasks').entries()].map(([, row]) => row)
       .filter(row => row.workspaceId === workspaceId)
@@ -211,6 +237,7 @@ export class StudyService {
   }
   async snapshot(workspaceId: string): Promise<StudySnapshot> {
     await this.collectChatAnswers(workspaceId)
+    await this.collectBlocks(workspaceId)
     const attempts = this.all<Attempt>(workspaceId, 'attempt').sort((a,b) => b.createdAt.localeCompare(a.createdAt))
     const course = this.courseForSnapshot(workspaceId, attempts)
     const workspace = this.learning.workspace(workspaceId)
@@ -224,7 +251,7 @@ export class StudyService {
       // Reading material opens once a route exists; `sources` stays the record of
       // what the learner confirmed reading, so the two are not the same list.
       materials: course?.sources ?? [], lessons: this.lessons(workspaceId), deepDives: this.deepDives(workspaceId),
-      nodeTasks: this.nodeTasks(workspaceId),
+      nodeTasks: this.nodeTasks(workspaceId), blocks: this.blocks(workspaceId),
       research: this.ledger.summary(workspaceId) }
   }
 

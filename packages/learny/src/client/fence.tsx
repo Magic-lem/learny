@@ -13,6 +13,8 @@
  */
 import { useEffect, useState } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
+import { DiagramView } from './diagram.tsx'
+import type { DiagramSpec } from './diagram-layout.ts'
 
 export type QuizQuestion = {
   q: string
@@ -25,8 +27,9 @@ export type QuizQuestion = {
 export type FenceBlock =
   | { block: 'note'; title?: string; body: string }
   | { block: 'quiz'; title?: string; questions: QuizQuestion[] }
+  | DiagramSpec
 
-const BLOCK_TYPES = new Set(['note', 'quiz'])
+const BLOCK_TYPES = new Set(['note', 'quiz', 'diagram'])
 const HOST_CLASS = 'learny-fence-host'
 const HIDDEN_CLASS = 'learny-fence-hidden'
 
@@ -42,6 +45,7 @@ export function parseFence(text: string): FenceBlock | null {
   const candidate = value as FenceBlock
   if (candidate.block === 'quiz' && !Array.isArray(candidate.questions)) return null
   if (candidate.block === 'note' && typeof candidate.body !== 'string') return null
+  if (candidate.block === 'diagram' && (!Array.isArray(candidate.nodes) || candidate.nodes.length === 0)) return null
   return candidate
 }
 
@@ -94,7 +98,9 @@ function QuizBlock({ block }: { block: Extract<FenceBlock, { block: 'quiz' }> })
 
 export function FenceView({ payload }: { payload: FenceBlock }) {
   return <div className="learny-fence" data-learny-fence={payload.block}>
-    {payload.block === 'note' ? <NoteBlock block={payload} /> : <QuizBlock block={payload} />}
+    {payload.block === 'note' && <NoteBlock block={payload} />}
+    {payload.block === 'quiz' && <QuizBlock block={payload} />}
+    {payload.block === 'diagram' && <DiagramView spec={payload} />}
   </div>
 }
 

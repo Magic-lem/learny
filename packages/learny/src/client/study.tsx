@@ -1,3 +1,5 @@
+import { FenceView } from './fence.tsx'
+import type { FenceBlock } from './fence.tsx'
 import { Icon } from './icons.tsx'
 import { TutorPanel } from './tutor.tsx'
 import { AttemptHistory } from './history.tsx'
@@ -31,6 +33,13 @@ const PRACTICE_FIELDS: Partial<Record<PracticeKind, LabelKey[]>> = {
   compare: ['practiceOptions', 'practiceDifference', 'practiceConclusion'],
   design: ['practiceDesign', 'practiceVerification', 'practiceConclusion'],
 }
+/** 回收来的块和正文里是同一份载荷，用同一个渲染器，避免两处各写一遍。 */
+function RecoveredBlock({payload}:{payload:string}){
+  let parsed:FenceBlock|null=null
+  try { parsed=JSON.parse(payload) as FenceBlock } catch { return null }
+  if(!parsed||typeof parsed!=='object'||!('block' in parsed))return null
+  return <div className="node-block"><FenceView payload={parsed}/></div>
+}
 export function StudyWorkbench({workspaceId,sessionId,api,t,onNote,onGenerateCourse}: Props) {
   const [snapshot,setSnapshot] = useState<StudySnapshot|null>(null)
   const [selected,setSelected] = useState<string|null>(null)
@@ -49,6 +58,8 @@ export function StudyWorkbench({workspaceId,sessionId,api,t,onNote,onGenerateCou
   const materials=snapshot?.materials??[]
   const deepDives=(snapshot?.deepDives??[]).filter(item=>item.nodeId===node?.id)
   const nodeTask=(snapshot?.nodeTasks??[]).filter(item=>item.nodeId===node?.id).at(-1)
+  // 讲解里穿插过的块：正文里已经出现过一次，这里回收同一份载荷供回看。
+  const nodeBlocks=(snapshot?.blocks??[]).filter(item=>item.nodeId===node?.id)
   // "今天从这里继续": the first node without a finished evaluation.
   const nextNode=snapshot?.nodes.find(item=>!snapshot.attempts.some(a=>a.nodeId===item.id&&a.evaluation))??snapshot?.nodes[0]
   /** A node already in progress wins over the next unstarted one. */
@@ -205,6 +216,10 @@ export function StudyWorkbench({workspaceId,sessionId,api,t,onNote,onGenerateCou
       <div className="kv"><span>{t('overviewResearch')}</span><span className="muted">{snapshot.research?`${snapshot.research.used} / ${snapshot.research.limit}`:'—'}</span></div>
     </div>}
     {attempt&&node?<article className="task">
+      {nodeBlocks.length>0&&<section className="node-blocks" aria-label={t('nodeBlocks')}>
+        <span className="section-label">{t('nodeBlocks')}</span>
+        {nodeBlocks.map(block=><RecoveredBlock key={block.id} payload={block.payload} />)}
+      </section>}
       <div className="progress">
         <ol className="progress-track" aria-label={t('taskProgress')}>{stages.map((stage,i)=><li key={stage} aria-current={attempt.stage===stage?'step':undefined} className={attempt.stage===stage?'cur':i<stageIndex?'done':''}><span className="sr-only">{t(stage)}</span></li>)}</ol>
         <p className="progress-label"><strong>{t(attempt.stage)} · {stageIndex+1} / {stages.length}</strong><span>{stageIntro}</span></p>

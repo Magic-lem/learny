@@ -43,4 +43,11 @@ export const studyDomain = defineDomain({ name: 'learny_study', version: 1, tabl
     id: z.uuid(), workspaceId: z.uuid(), nodeId: z.string().min(1).max(64),
     sessionId: z.string().min(1).max(200), requestId: z.string().min(1).max(200), askedAt: z.iso.datetime(),
   })),
+  // 讲解里出现过的块（结构图、自测、要点卡）。讲解发生在对话里，块也写在那里，
+  // 这里按出现次序回收一份载荷，节点页才能回看，导出也才有同一份数据可用。
+  // id 由 空间+节点+序号 组成，所以重跑一次讲解是覆盖而不是堆积。
+  node_blocks: domainTable(z.object({
+    id: z.string().min(1).max(300), workspaceId: z.uuid(), nodeId: z.string().min(1).max(64),
+    kind: z.string().min(1).max(32), payload: z.string().min(1).max(20_000), at: z.iso.datetime(),
+  })),
 } })

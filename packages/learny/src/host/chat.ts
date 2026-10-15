@@ -36,23 +36,33 @@ export class DshChatGateway implements ChatGateway {
     return requestId
   }
 
-  /** The chat's answer to one admitted request: the assistant message that follows it. */
+  /**
+   * The chat's answer to one admitted request: every assistant message in that
+   * turn, joined. A turn can emit more than one assistant message (a preamble,
+   * then the body after a tool call), and the lesson's fences live in the body —
+   * returning only the first message silently loses them. The turn ends at the
+   * next `user/message` or `turn/end`, whichever the log reaches first.
+   */
   async answer(request: { sessionId: string; requestId: string }): Promise<string | null> {
     const session = await this.ctx.typert.lookups.get('session')?.resolve(SessionId(request.sessionId))
     if (!(session instanceof Session)) return null
     const events = session.snapshotEvents()
     let asked = false
+    const parts: string[] = []
     for (const event of events) {
       if (event.type === 'user/message') {
         const source = (event.data as { source?: { rpcId?: string } }).source
         if (source?.rpcId === request.requestId) asked = true
+        else if (asked) break
         continue
       }
-      if (!asked || event.type !== 'assistant/message') continue
+      if (!asked) continue
+      if (event.type === 'turn/end') { if (parts.length) break; continue }
+      if (event.type !== 'assistant/message') continue
       const content = (event.data as { message?: { content?: readonly { type?: string; text?: string }[] } }).message?.content ?? []
       const text = content.filter(part => part.type === 'text' && typeof part.text === 'string').map(part => part.text!).join('')
-      if (text.trim()) return text
+      if (text.trim()) parts.push(text)
     }
-    return null
+    return parts.length ? parts.join('\n\n') : null
   }
 }

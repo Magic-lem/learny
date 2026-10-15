@@ -440,3 +440,28 @@
 .learny-fence-submit { border-color: var(--ly-button) !important; background: var(--ly-button) !important; color: #fff !important; font-weight: 600; }
 .learny-fence-submit:disabled { opacity: .5; cursor: default; }
 .learny-fence-score { color: var(--ly-muted); font-size: var(--ly-fs-body); }
+
+/* 图块：坐标由 layoutDiagram 算好，这里只负责描边与文字 */
+.learny-fence .learny-diagram { margin: 0; }
+.learny-fence .learny-diagram figcaption { margin-bottom: 6px; color: var(--ly-ink-2); font-size: var(--ly-fs-body); }
+.learny-fence .learny-diagram-canvas {
+  overflow-x: auto; padding: 14px; border: 1px solid var(--ly-line);
+  border-radius: var(--ly-radius-lg); background: var(--ly-paper);
+}
+.learny-diagram-box { fill: var(--ly-bg); stroke: var(--ly-line-strong, var(--ly-line)); stroke-width: 1; }
+.learny-diagram-label { fill: var(--ly-ink); font-size: 13px; font-weight: 500; text-anchor: middle; }
+.learny-diagram-group { fill: var(--ly-muted); font-size: 11px; text-anchor: middle; }
+.learny-diagram-edge { fill: none; stroke: var(--ly-line-strong, var(--ly-line)); stroke-width: 1.2; }
+.learny-diagram-arrow { fill: var(--ly-line-strong, var(--ly-line)); }
+.learny-diagram-edge-label { fill: var(--ly-muted); font-size: 11px; text-anchor: middle; }
+
+/* 节点页回看的块：与正文里的块共用渲染器，这里只负责外边距 */
+.learny .node-blocks { display: grid; gap: 8px; margin-bottom: 12px; }
+.learny .node-blocks .learny-fence { margin: 0; }
+.learny .node-block {
+  border: 1px solid var(--ly-line); border-radius: var(--ly-radius-lg);
+  padding: 10px 12px; background: var(--ly-paper);
+}
+.learny .node-block .learny-fence-note,
+.learny .node-block .learny-fence-quiz { border: 0; padding: 0; background: transparent; }
+.learny .node-block .learny-diagram-canvas { background: var(--ly-bg); }

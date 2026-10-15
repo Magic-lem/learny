@@ -11,3 +11,7 @@ CONTEXT_HANDOFF.txt
 # Generator receipts record local absolute paths; the artifacts they describe stay.
 *.receipt.json
 *.visual-check.json
+
+# 本地发布配置与生成报告：留在本机，不随仓库发布
+.popo.json
+docs/reports/

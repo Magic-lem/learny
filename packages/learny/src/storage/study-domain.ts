@@ -4,6 +4,10 @@ import { z } from 'zod'
 // Additive domain: opening M1 never rewrites the existing M0 workspace domain.
 // Each aggregate is a single authoritative record (submission, evaluation, or tutor turn).
 export const studyDomain = defineDomain({ name: 'learny_study', version: 1, tables: {
+  node_progress: domainTable(z.object({
+    id: z.string().min(1).max(500), workspaceId: z.uuid(), courseVersion: z.string().min(1).max(300),
+    nodeId: z.string().min(1).max(64), completed: z.boolean(), updatedAt: z.iso.datetime(),
+  })),
   records: domainTable(z.object({ id: z.uuid(), workspaceId: z.uuid(), kind: z.enum(['attempt', 'revision', 'tutor', 'course']), payload: z.string().max(3_000_000) })),
   // Page material Learny already paid to read, keyed by source identity so a
   // re-search reuses it instead of fetching the same text again.

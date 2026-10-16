@@ -57,6 +57,11 @@ export class LearnyController extends TypertRemoteService {
 
   @Remote('studySnapshot')
   async studySnapshot(workspaceId: string, signal: AbortSignal): Promise<StudySnapshot> { signal.throwIfAborted(); return this.study.snapshot(workspaceId) }
+  @Remote('markNodeComplete')
+  async markNodeComplete(workspaceId: string, nodeId: string, completed: boolean, signal: AbortSignal): Promise<void> {
+    signal.throwIfAborted()
+    return this.study.markNodeComplete(workspaceId, nodeId, completed)
+  }
   @Remote('capabilityStatus')
   async capabilityStatus(sessionId: string, signal: AbortSignal): Promise<CapabilityStatus> { signal.throwIfAborted(); return this.study.capabilityStatus(sessionId) }
   @Remote('generateCourse')

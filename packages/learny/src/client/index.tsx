@@ -31,15 +31,24 @@ export function apply(ctx: Context): void {
     const stop = installFenceRenderer()
     return () => stop()
   })
-  ctx.inject(['remote.learny'], ctx => {
+  ctx.inject(['remote.learny', 'uiWorkspace', 'layout'], ctx => {
     const t = ctx.locale.bind('learny')
     ctx.effect(() => ctx.sidebarRightTabs.register({
       id: 'dsh-plugin-learny', kind: 'learny', title: () => t('title'),
       guide: [{ id: 'learny', order: 5, title: () => t('title'), description: () => t('description') }],
     }))
     const subscribeReset = (listener: () => void) => ctx.on('connection/reset', listener)
+    // Public host services; structural typing avoids bundling a second UI package.
+    const navigation = ctx as unknown as {
+      uiWorkspace: { openSession: (id: string) => void }
+      sidebarRight: { isExpanded: () => boolean; toggleExpanded: () => void }
+    }
+    const onOpenChat = (id: string) => {
+      navigation.uiWorkspace.openSession(id)
+      if (navigation.sidebarRight.isExpanded()) navigation.sidebarRight.toggleExpanded()
+    }
     const Body = (props: PropsRuntime<'sidebar.right.pane.tab'> & PropsLocale<'learny'>) =>
-      <LearnyBody {...props} api={ctx.remote.learny} subscribeReset={subscribeReset} />
+      <LearnyBody {...props} api={ctx.remote.learny} subscribeReset={subscribeReset} onOpenChat={onOpenChat} />
     ctx.effect(() => ctx.slots.inject('sidebar.right.pane.tab', () => ctx.slots.register(
       { name: 'sidebar.right.pane.tab', key: 'dsh-plugin-learny', locale: 'learny' }, Body,
     )))

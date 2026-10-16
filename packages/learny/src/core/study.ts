@@ -251,8 +251,23 @@ export class StudyService {
       // Reading material opens once a route exists; `sources` stays the record of
       // what the learner confirmed reading, so the two are not the same list.
       materials: course?.sources ?? [], lessons: this.lessons(workspaceId), deepDives: this.deepDives(workspaceId),
+      progress: [...this.domain.table('node_progress').entries()].map(([, row]) => row)
+        .filter(row => row.workspaceId === workspaceId && row.courseVersion === course?.version)
+        .map(({ nodeId, completed, updatedAt }) => ({ nodeId, completed, updatedAt })),
       nodeTasks: this.nodeTasks(workspaceId), blocks: this.blocks(workspaceId),
       research: this.ledger.summary(workspaceId) }
+  }
+
+  /** A learning flag never submits an attempt or changes its evaluation. */
+  async markNodeComplete(workspaceId: string, nodeId: string, completed: boolean): Promise<void> {
+    this.learning.workspace(workspaceId)
+    const course = this.courseForSnapshot(workspaceId, this.all<Attempt>(workspaceId, 'attempt'))
+    if (!course || !course.nodes.some(node => node.id === nodeId)) invalid('nodeId')
+    if (typeof completed !== 'boolean') invalid('completed')
+    const id = JSON.stringify([workspaceId, course.version, nodeId])
+    await this.domain.table('node_progress').put(id, {
+      id, workspaceId, courseVersion: course.version, nodeId, completed, updatedAt: new Date().toISOString(),
+    })
   }
 
   /** Report what the current dsh host exposes without probing or storing credentials. */

@@ -30,7 +30,10 @@ export interface Attempt {
   modelStatus: 'idle' | 'pending' | 'complete' | 'failed' | 'interrupted'; error: string | null; evaluation: Evaluation | null;
 }
 export interface StudyCourse { version: string; title: string; intro: string; nodes: StudyNode[]; sources: Source[] }
+/** A self-reported learning flag, separate from evaluated mastery. */
+export interface NodeProgress { nodeId: string; completed: boolean; updatedAt: string }
 export interface StudySnapshot {
+  progress?: NodeProgress[];
   course: StudyCourse | null; courseOrigin: 'none' | 'builtin' | 'legacy' | 'workspace'; courseVersion: string;
   nodes: StudyNode[]; attempts: Attempt[]; sources: Source[]; tutorMessages: TutorMessage[];
   /** Material the current node may be read from, available before any reading is recorded. */

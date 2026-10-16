@@ -1,7 +1,7 @@
 import { Icon } from './icons.tsx'
-import { StudyWorkbench } from './study.tsx'
+import { StudyWorkbench, type ManagementView } from './manager.tsx'
 import { NoteOrganizer } from './revisions.tsx'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useId } from 'react'
 import type { FormEvent } from 'react'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -14,13 +14,14 @@ import type {} from './locales.ts'
 type Props = PropsRuntime<'sidebar.right.pane.tab'> & PropsLocale<'learny'> & {
   api: ClientRemote['learny']
   subscribeReset: (listener: () => void) => () => void
+  onOpenChat: (sessionId: string) => void
 }
 
 interface Draft { title: string; content: string; version: string }
 const draftKey = (noteId: string) => `learny.draft.${noteId}`
 
 /** Session-owned workbench backed by the host's durable snapshot and Markdown files. */
-export function LearnyBody({ sessionId, api, t, subscribeReset }: Props) {
+export function LearnyBody({ sessionId, api, t, subscribeReset, onOpenChat }: Props) {
   const [snapshot, setSnapshot] = useState<Snapshot>({ workspaces: [], workspaceId: null, notes: [] })
   const [note, setNote] = useState<NoteDocument | null>(null)
   const [title, setTitle] = useState('')
@@ -30,8 +31,12 @@ export function LearnyBody({ sessionId, api, t, subscribeReset }: Props) {
   const [notice, setNotice] = useState('')
   const [search, setSearch] = useState('')
   const [preview, setPreview] = useState(false)
-  const [view, setView] = useState<'study' | 'notes'>('study')
+  const [view, setView] = useState<ManagementView>('current')
   const [matches, setMatches] = useState<Snapshot['notes']>([])
+  const [navigationVersion, setNavigationVersion] = useState(0)
+  const [settings, setSettings] = useState(false)
+  const navRef = useRef<HTMLElement>(null)
+  const navigationId = useId()
   const [creating, setCreating] = useState(false)
   const [capabilities, setCapabilities] = useState<CapabilityStatus | null>(null)
   const [setupDismissed, setSetupDismissed] = useState(() => {
@@ -116,14 +121,14 @@ export function LearnyBody({ sessionId, api, t, subscribeReset }: Props) {
     await run(async () => {
       const space = await unwrap(api.createWorkspace(form, new AbortController().signal))
       await unwrap(api.bindWorkspace(sessionId, space.id, new AbortController().signal))
-      await refresh(); setCreating(false); setNote(null)
+      await refresh(); setCreating(false); setSettings(false); setView('current'); setNote(null)
     })
   }
 
   async function chooseSpace(id: string) {
     await run(async () => {
       await unwrap(api.bindWorkspace(sessionId, id, new AbortController().signal))
-      await refresh(); setNote(null); setSearch('')
+      await refresh(); setNote(null); setSearch(''); setView('current'); setSettings(false)
     })
   }
 
@@ -140,12 +145,21 @@ export function LearnyBody({ sessionId, api, t, subscribeReset }: Props) {
     <div className="learny-shell">
       <div className="workspace-chrome"><header className="workspace-header">
         <div className="brand"><Icon name="book" /><h1>{t('title')}</h1></div>
-        <label className="space-select"><span className="sr-only">{t('spaces')}</span><select value={snapshot.workspaceId ?? ''} disabled={busy} onChange={event => { if (event.target.value) void chooseSpace(event.target.value) }}>
-          <option value="" disabled>{t('choose')}</option>{snapshot.workspaces.map(space => <option key={space.id} value={space.id}>{space.name}</option>)}
-        </select></label>
+
         <button className="quiet new-space" aria-label={t('createSpace')} aria-expanded={creating} disabled={busy} onClick={() => setCreating(!creating)}><Icon name="plus" /><span>{t('createSpace')}</span></button>
+        {workspace && <button className="quiet" onClick={() => setSettings(!settings)} aria-expanded={settings}>{t('spaceSettings')}</button>}
       </header>
-      {workspace && !creating && <nav className="workspace-nav" aria-label={t('workspaceNavigation')}><button aria-pressed={view === 'study'} onClick={() => setView('study')}><Icon name="book" />{t('study')}</button><button aria-pressed={view === 'notes'} onClick={() => setView('notes')}><Icon name="note" />{t('notes')}<span className="count">{snapshot.notes.length}</span></button></nav>}
+      <div className="manager-space-picker">        <label className="space-select"><span className="sr-only">{t('spaces')}</span><select value={snapshot.workspaceId ?? ''} disabled={busy} onChange={event => { if (event.target.value) void chooseSpace(event.target.value) }}>
+          <option value="" disabled>{t('choose')}</option>{snapshot.workspaces.map(space => <option key={space.id} value={space.id}>{space.name}</option>)}
+        </select></label></div>
+      {workspace && !creating && <nav ref={navRef} className="workspace-nav" role="tablist" aria-label={t('workspaceNavigation')} onKeyDown={event => {
+        const buttons = Array.from(navRef.current?.querySelectorAll<HTMLButtonElement>('button') ?? [])
+        const index = buttons.indexOf(document.activeElement as HTMLButtonElement)
+        const target = event.key === 'Home' ? 0 : event.key === 'End' ? buttons.length - 1 : event.key === 'ArrowRight' ? (index + 1) % buttons.length : event.key === 'ArrowLeft' ? (index - 1 + buttons.length) % buttons.length : -1
+        if (target < 0) return
+        event.preventDefault(); buttons[target]?.click(); buttons[target]?.focus()
+      }}>{(['current', 'map', 'sources', 'notes'] as const).map(tab => <button key={tab} role="tab" id={`${navigationId}-nav-${tab}`} aria-controls={`${navigationId}-content`} aria-selected={view === tab} tabIndex={view === tab ? 0 : -1} onClick={() => { setView(tab); setSettings(false); setNavigationVersion(version => version + 1) }}>{t(tab === 'current' ? 'currentTab' : tab === 'map' ? 'mapTab' : tab === 'sources' ? 'managementSources' : 'managementNotes')}</button>)}
+      </nav>}
       </div>
       {creating && <form className="space-form" onSubmit={event => { void createSpace(event) }}>
         <div className="form-heading"><h2>{t('createSpace')}</h2><p className="muted">{t('createIntro')}</p></div>
@@ -155,8 +169,9 @@ export function LearnyBody({ sessionId, api, t, subscribeReset }: Props) {
         {form.kind === 'project' && <label className="full-width">{t('path')}<input required value={form.materialPath} onChange={event => setForm({ ...form, materialPath: event.target.value })} /></label>}
         <div className="row full-width"><button className="primary" disabled={busy} type="submit">{t('create')}</button><button type="button" onClick={() => setCreating(false)}>{t('cancel')}</button></div>
       </form>}
-      {!setupDismissed && <section className="setup-check" aria-labelledby="learny-setup-title">
-        <div className="setup-heading"><div><p className="section-label">{t('setupEyebrow')}</p><h2 id="learny-setup-title">{t('setupTitle')}</h2><p className="muted">{t('setupIntro')}</p></div><button className="quiet" disabled={busy} onClick={dismissSetup}>{t('setupDismiss')}</button></div>
+      {!setupDismissed && !settings && <div className="setup-reminder"><span>{t('setupTitle')}</span><button className="link" onClick={() => setSettings(true)}>{t('setupOpen')}</button><button className="quiet" onClick={dismissSetup}>{t('setupDismiss')}</button></div>}
+      {settings && <section className="setup-check" aria-labelledby="learny-setup-title">
+        <div className="setup-heading"><div><p className="section-label">{t('setupEyebrow')}</p><h2 id="learny-setup-title">{t('setupTitle')}</h2><p className="muted">{t('setupIntro')}</p></div><button className="quiet" disabled={busy} onClick={() => { dismissSetup(); setSettings(false) }}>{t('setupDismiss')}</button></div>
         <div className="setup-list">
           <div className="setup-row"><span>{t('setupModel')}</span><strong className={capabilities?.model === 'ready' ? 'ready' : 'pending'}>{!capabilities ? t('working') : capabilities.model === 'ready' ? t('setupReady') : t('setupNeedsSession')}</strong><p>{t('setupModelDetail')}</p></div>
           <div className="setup-row"><span>{t('setupSearch')}</span><strong className={capabilities?.webSearch === 'mounted' ? 'ready' : 'pending'}>{!capabilities ? t('working') : capabilities.webSearch === 'mounted' ? t('setupMounted') : t('setupMissing')}</strong><p>{t('setupSearchDetail')}</p></div>
@@ -166,9 +181,10 @@ export function LearnyBody({ sessionId, api, t, subscribeReset }: Props) {
       </section>}
       {notice && <div className="notice" role="status">{notice}</div>}
       {creating ? null : workspace ? <>
-        {workspace.goal && <details className="goal"><summary><span>{t('goal')}</span><span>{workspace.goal}</span></summary><p>{workspace.goal}</p>{workspace.kind==='project'&&<p className="material-path">{workspace.materialPath}</p>}</details>}
+        {settings && workspace.goal && <details className="goal"><summary><span>{t('goal')}</span><span>{workspace.goal}</span></summary><p>{workspace.goal}</p>{workspace.kind==='project'&&<p className="material-path">{workspace.materialPath}</p>}</details>}
 
-        {view === 'study' ? <StudyWorkbench key={`${workspace.id}:${sessionId}`} workspaceId={workspace.id} sessionId={sessionId} api={api} t={t} onNote={async taskTitle => { await run(async () => { showNote(await unwrap(api.createNote(workspace.id, taskTitle, new AbortController().signal))); await refresh(); setView('notes') }) }} onGenerateCourse={async () => { await unwrap(api.generateCourse(workspace.id, sessionId, new AbortController().signal)) }} /> : <section className="notes-workbench" aria-label={t('notes')}>
+        <div id={`${navigationId}-content`} role="tabpanel" aria-labelledby={`${navigationId}-nav-${view}`}>
+        {view !== 'notes' ? <StudyWorkbench key={`${workspace.id}:${sessionId}`} workspaceId={workspace.id} sessionId={sessionId} api={api} t={t} view={view} navigationVersion={navigationVersion} onView={setView} onOpenChat={onOpenChat} onNote={async taskTitle => { await run(async () => { showNote(await unwrap(api.createNote(workspace.id, taskTitle, new AbortController().signal))); await refresh(); setView('notes') }) }} onGenerateCourse={async () => { await unwrap(api.generateCourse(workspace.id, sessionId, new AbortController().signal)) }} /> : <section className="notes-workbench" aria-label={t('notes')}>
           <div className="section-heading"><div><h2>{t('notes')}</h2><p className="muted">{t('notesIntro')}</p></div><button disabled={busy} onClick={() => { void run(async () => { showNote(await unwrap(api.createNote(workspace.id, t('untitled'), new AbortController().signal))); await refresh() }) }}><Icon name="plus" />{t('newNote')}</button></div>
           <div className="layout">
             <aside className="note-list" aria-label={t('noteDirectory')}>
@@ -192,6 +208,7 @@ export function LearnyBody({ sessionId, api, t, subscribeReset }: Props) {
             </section> : <div className="empty"><span className="empty-icon"><Icon name="note" /></span><h3>{t('captureThought')}</h3><p>{t('noNote')}</p></div>}
           </div>
         </section>}
+        </div>
       </> : <div className="empty welcome"><span className="empty-icon"><Icon name="book" /></span><h2>{busy ? t('loading') : t('welcome')}</h2><p>{t('noSpace')}</p>{!busy && !creating && <button className="primary" onClick={() => setCreating(true)}><Icon name="plus" />{t('createSpace')}</button>}</div>}
     </div>
   </div>

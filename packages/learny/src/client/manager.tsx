@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import Markdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
+import { LessonMarkdown } from './lesson-markdown.tsx'
 import type { ClientRemote } from '@deepseek-ai/dsh-api-gateway/client'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type { StudyNode, StudySnapshot } from '../core/study-types.ts'
 import { value } from './remote.ts'
+import { QuickNote } from './quick-note.tsx'
 import { LearningMap, KnowledgeMap } from './maps.tsx'
 import { PracticeWorkbench } from './study.tsx'
 import { AttemptHistory } from './history.tsx'
@@ -14,7 +14,7 @@ import type {} from './locales.ts'
 export type ManagementView = 'current' | 'map' | 'sources' | 'notes'
 type Props = {
   workspaceId: string; sessionId: string; view: ManagementView; api: ClientRemote['learny']; t: PropsLocale<'learny'>['t']
-  onView: (view: ManagementView) => void; onNote: (title: string) => Promise<void>; onGenerateCourse: () => Promise<void>
+  onView: (view: ManagementView) => void; onNote: (title: string, nodeId?: string, courseVersion?: string) => Promise<void>; onGenerateCourse: () => Promise<void>
   onOpenChat: (sessionId: string) => void; navigationVersion: number
 }
 export function StudyWorkbench({ workspaceId, sessionId, view, api, t, onView, onNote, onGenerateCourse, onOpenChat, navigationVersion }: Props) {
@@ -55,17 +55,21 @@ export function StudyWorkbench({ workspaceId, sessionId, view, api, t, onView, o
   async function openLesson(target: StudyNode) {
     const existing = validTasks.filter(item => item.nodeId === target.id).at(-1)
     if (existing) { await run(async () => onOpenChat(existing.sessionId)); return }
+    await teachLesson(target)
+  }
+  async function teachLesson(target: StudyNode, targetSessionId = sessionId) {
     await run(async () => {
-      await value(api.startNode(workspaceId, target.id, sessionId, signal()))
+      await value(api.startNode(workspaceId, target.id, targetSessionId, signal()))
       await refresh()
-      onOpenChat(sessionId)
+      onOpenChat(targetSessionId)
     })
   }
   const records = node && snapshot && <details className="manager-record" key={`records:${node.id}`}>
     <summary>{t('sectionRecords')}</summary>
     <div className="record-links"><button className="link" onClick={() => onView('notes')}>{t('notes')}</button>
       <button className="link" onClick={() => onView('sources')}>{t('sources')}</button>
-      <button className="link" disabled={busy} onClick={() => { void run(() => onNote(node.title)) }}>{t('taskNote')}</button>
+      {task && <button className="link" disabled={busy} onClick={() => { void teachLesson(node, task.sessionId) }}>{t('reteachChapter')}</button>}
+      <button className="link" disabled={busy} onClick={() => { void run(() => onNote(node.title, node.id, snapshot.courseVersion)) }}>{t('taskNote')}</button>
     </div>
     <details><summary>{t('learningRecords')}</summary>
       {validTasks.filter(item => item.nodeId === node.id).map(item => <div className="manager-log" key={item.id}>
@@ -75,7 +79,7 @@ export function StudyWorkbench({ workspaceId, sessionId, view, api, t, onView, o
     </details>
     {(snapshot.deepDives ?? []).some(dive => dive.nodeId === node.id) && <details><summary>{t('deepenTitle')}</summary>{(snapshot.deepDives ?? []).filter(dive => dive.nodeId === node.id).map(dive => <details key={dive.id} className="record">
       <summary>{dive.question}</summary>
-      {dive.mode === 'chat' && dive.sessionId ? <button className="link" onClick={() => { void run(async () => onOpenChat(dive.sessionId!)) }}>{t('returnLearningChat')}</button> : dive.answer ? <div className="prose"><Markdown remarkPlugins={[remarkGfm]}>{dive.answer}</Markdown></div> : <p className="muted">{t('deepenEmpty')}</p>}
+      {dive.mode === 'chat' && dive.sessionId ? <button className="link" onClick={() => { void run(async () => onOpenChat(dive.sessionId!)) }}>{t('returnLearningChat')}</button> : dive.answer ? <div className="prose"><LessonMarkdown>{dive.answer}</LessonMarkdown></div> : <p className="muted">{t('deepenEmpty')}</p>}
     </details>)}</details>}
     {(snapshot.blocks ?? []).some(block => block.nodeId === node.id) && <details><summary>{t('nodeBlocks')}</summary>{(snapshot.blocks ?? []).filter(block => block.nodeId === node.id).map(block => {
       const payload = parseFence(block.payload)
@@ -92,7 +96,7 @@ export function StudyWorkbench({ workspaceId, sessionId, view, api, t, onView, o
       <button className="primary" disabled={busy} onClick={() => { void run(async () => { await onGenerateCourse(); await refresh() }) }}>{busy ? t('generatingCourse') : t('generateCourse')}</button>
     </div> : practice && node ? <>
       <button className="quiet manager-back" onClick={() => { setPractice(false); onView('map'); void run(refresh) }}>{t('returnChapter')}</button>
-      <PracticeWorkbench key={node.id} initialNodeId={node.id} initialAttemptId={practiceAttemptId} workspaceId={workspaceId} sessionId={sessionId} api={api} t={t} onNote={onNote} onGenerateCourse={onGenerateCourse} />
+      <PracticeWorkbench key={node.id} initialNodeId={node.id} initialAttemptId={practiceAttemptId} workspaceId={workspaceId} sessionId={sessionId} api={api} t={t} onNote={title => onNote(title, node.id, snapshot.courseVersion)} onGenerateCourse={onGenerateCourse} />
     </> : view === 'map' && !selected ? <LearningMap snapshot={snapshot} currentId={focus?.id} disabled={busy} t={t} onSelect={selectNode} />
       : view === 'sources' ? <section className="manager-sources"><div className="manager-heading"><h2>{t('sources')}</h2></div><p className="muted">{t('sourcesManagementHint')}</p>
         {materials.length ? materials.map(source => <details className="manager-source" key={source.id}><summary>{source.title}</summary>
@@ -112,6 +116,11 @@ export function StudyWorkbench({ workspaceId, sessionId, view, api, t, onView, o
           <KnowledgeMap key={node.id} node={node} t={t} />
           <details className="manager-record"><summary>{t('practiceAssessment')}</summary><p className="muted">{t('practiceAssessmentHint')}</p><button onClick={() => { setPracticeAttemptId(undefined); setPractice(true) }}>{t('openPracticeAssessment')}</button></details>
         </> : next && <div className="manager-next"><div><span className="section-label">{t('nextChapter')}</span><p>{next.title}</p></div><button className="link" onClick={() => { onView('map'); selectNode(next.id) }}>{t('viewAttempt')}</button></div>}
+        {view === 'current' && <section className="current-quick"><h3>{t('quickNote')}</h3>
+          <QuickNote key={`${workspaceId}:${sessionId}:${snapshot.courseVersion}:${node.id}`} workspaceId={workspaceId} sessionId={sessionId} api={api} t={t}
+            location={{ nodeId: node.id, courseVersion: snapshot.courseVersion, title: node.title }} locationLabel={t('saveInto', { title: node.title })} />
+          <button className="link" onClick={() => onView('notes')}>{t('allNotes')}</button>
+        </section>}
         {records}
       </article> : null}
     {snapshot?.course && <footer className="manager-footer"><span>{t('localRecords')}</span><button className="quiet" disabled={busy} onClick={() => { void run(refresh) }}>{t('refresh')}</button></footer>}

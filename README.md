@@ -52,23 +52,35 @@ Learny 是一个跑在 [dsh](https://www.npmjs.com/package/@deepseek-ai/dsh)（D
 
 ![学习路线与当前任务](docs/assets/workbench.jpg)
 
-打开某一节，Learny 把这一节发进左侧对话，由对话里的模型带着资料讲清楚「这一节解决什么问题、关键机制是什么、下一步能自己怎么验证」，有不清楚的地方就地追问。讲解正文里可以直接带结构图和自测块，读完当场就能判断自己有没有懂；面板这边留下的是同一份块、要点、出处与追问记录。
+打开某一节，Learny 把这一节发进左侧对话，由对话里的模型围绕学习目标、先备知识与贯穿案例编排章节，逐步解释原理并对照证据，有不清楚的地方就地追问。讲解正文里可以直接带结构图和自测块，读完当场就能判断自己有没有懂；面板这边留下的是同一份块、要点、出处与追问记录。
 
 ![在对话里开讲，面板保留要点与追问记录](docs/assets/lesson.jpg)
 
 ## 讲解里的块
 
-讲解正文里可以穿插三块内容，写在 ` ```learny ` 围栏里，围栏体是一段 JSON：
+讲解正文里可以穿插以下教学内容，写在 ` ```learny ` 围栏里，围栏体是一段 JSON：
 
 - **结构图/流程图**：`{"block":"diagram","nodes":[{"id":"api","label":"API Server","group":"控制平面"}],"edges":[{"from":"api","to":"kubelet","label":"下发 Pod 规格"}]}`。坐标由 Learny 自己算（分层布局），框的大小跟着文字走，所以不会压字。
 - **即时自测**：`{"block":"quiz","questions":[{"q":"问题","options":["A","B"],"answer":1,"explain":"为什么是它"}]}`。选完提交就地判分、给解析，可以重做。
 - **要点卡**：`{"block":"note","title":"标题","body":"一两句话"}`。
+- **本章依据**：章末默认收起，展开查看实际使用的文档标题、源码路径及其支持的内容；正文不再要求输出 `[project-1]` 等内部编号。
 
 块渲染在对话正文里（dsh 这版没有围栏扩展点，走的是 DOM 接管：只认自己的载荷、只接管已经停止输出的块、解析失败保留原文），同一份载荷会被回收进节点记录，供节点页回看与后续导出。
 
 ## 快速开始
 
-Learny 只提供一个插件包；模型和网页搜索用的是 dsh 自己的能力，其中搜索由 dsh 内置的 DeepSeek 搜索提供，配一个 API Key 即可。
+Learny 本体是 `dsh-plugin-learny`；模型和网页搜索沿用 dsh 的配置，OneAPI 搜索适配器是可选项。
+
+**分发状态（2026-10-26 核对）**：源码已在 GitHub 公开，npm 暂未发布，GitHub 暂无 Release 安装附件。当前使用下面的源码构建安装流程；仓库里的旧 `v0.1.4` 标签不包含其后的全部改动，试用最新功能请检出 `main`，需要固定版本时记录实际安装的提交。
+
+如果你已经有能正常对话的 dsh，构建后只需安装插件并重启：
+
+```sh
+dsh plugin --profile web add "link:$PWD/packages/learny"
+dsh web
+```
+
+这两条命令在下方克隆并构建的 Learny 仓库根目录执行。沿用已有模型与搜索时，无需重复配置，也不需要 Demo 脚本或 `--from-default-profile`。
 
 需要 Node.js 24+、pnpm，和一个已经能对话的 dsh：
 
@@ -80,7 +92,7 @@ pnpm install --frozen-lockfile
 pnpm build
 
 # 2. 装进 dsh 的 web profile（dsh 会自动把它落成 profile）
-dsh plugin --profile web add link:$PWD/packages/learny
+dsh plugin --profile web add "link:$PWD/packages/learny"
 
 # 3. 模型按你自己的服务填，搜索用 dsh 内置的 DeepSeek 搜索
 export LEARNY_MODEL_URL='https://your-gateway/v1'
@@ -139,7 +151,7 @@ Learny 是一个 dsh 插件，由三部分组成：浏览器里的学习面板�
 pnpm install --frozen-lockfile
 pnpm build         # 编译 Host、生成 Remote 类型、打包浏览器端
 pnpm typecheck
-pnpm test          # 38 项，覆盖学习流程、搜索适配器、抓取记账与缓存
+pnpm test          # 覆盖学习流程、笔记、来源呈现、搜索适配器与缓存
 pnpm pack:plugin   # 产出 artifacts/ 下的两个插件包
 pnpm demo:install && pnpm demo:web   # 本地起一个 demo 宿主
 ```

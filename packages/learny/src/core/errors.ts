@@ -4,6 +4,7 @@ declare module '@deepseek-ai/dsh-typert-protocol' {
   interface RemoteErrorDetailsMap {
     'learny/not-found': { id: string }
     'learny/conflict': { noteId: string }
+    'learny/workspace-conflict': { workspaceId: string }
     'learny/invalid-input': { field: string }
   }
 }

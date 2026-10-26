@@ -40,9 +40,14 @@ test('a node is started in the chat and the panel keeps only its record',async t
 
  const task=await host.study.startNode(space.id,nodeId,'chat-one')
  assert.equal(asked.length,1)
- // 发进对话的是"讲这一节"的任务，带着导读、要点和资料，并要求给出可自行验证的下一步
+ // 发进原生对话的教学任务带上目标、后续章节边界和可选练习，不生成第二份对话。
  assert.match(asked[0].text,/开始一节/)
- assert.match(asked[0].text,/可自己动手验证的下一步|自己动手验证的下一步/)
+ const teaching = JSON.parse(asked[0].text.split('教学任务（目标用于组织讲解，练习是讲授后的可选项，不要求用户先回答）：\n')[1].split('\n\n')[0])
+ assert.deepEqual(teaching.outcomes,course.nodes[0].criteria.map(item=>item.description))
+ assert.equal(teaching.chapter,1)
+ assert.equal(teaching.prerequisite,null)
+ assert.equal(teaching.next.title,course.nodes[1].title)
+ assert.equal(teaching.optionalPractice,course.nodes[0].practice)
  assert.match(asked[0].text,new RegExp(course.nodes[0].title))
  assert.equal(task.nodeId,nodeId);assert.equal(task.sessionId,'chat-one')
 

@@ -94,19 +94,6 @@
 .learny .space-form { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; padding: 20px; background: var(--ly-bg); border-bottom: 1px solid var(--ly-line); }
 .learny .form-heading, .learny .full-width { grid-column: 1/-1; }
 .learny .form-heading p { margin-top: 4px; }
-.learny .setup-check { margin: 16px 20px 0; padding: 16px 0; border-top: 1px solid var(--ly-line); border-bottom: 1px solid var(--ly-line); }
-.learny .setup-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
-.learny .setup-heading h2 { margin-top: 2px; font-size: 16px; }
-.learny .setup-heading .muted { margin-top: 4px; max-width: 72ch; }
-.learny .setup-heading .quiet { flex-shrink: 0; min-height: 30px; padding: 5px 8px; }
-.learny .setup-list { display: grid; margin-top: 14px; border-top: 1px solid var(--ly-line); }
-.learny .setup-row { display: grid; grid-template-columns: minmax(100px, .28fr) auto minmax(0, 1fr); align-items: baseline; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--ly-line); }
-.learny .setup-row > span { font-weight: 550; }
-.learny .setup-row strong { font-size: 12px; font-weight: 600; white-space: nowrap; }
-.learny .setup-row strong.ready { color: var(--ly-green); }
-.learny .setup-row strong.pending { color: var(--ly-warning); }
-.learny .setup-row p, .learny .setup-footnote { color: var(--ly-ink-2); font-size: 12px; line-height: 1.7; }
-.learny .setup-footnote { margin-top: 12px; max-width: 90ch; }
 /* 学习目标是常驻提示带：用一层安静的表面把自己和正文分开，而不是把文字调暗。 */
 .learny .goal { margin: 0; padding: 0 14px; border-bottom: 1px solid var(--ly-line); background: var(--ly-bg); color: var(--ly-ink-2); }
 .learny .goal summary { display: flex; align-items: baseline; justify-content: flex-start; gap: 8px; padding: 6px 0; font-size: var(--ly-fs-micro); font-weight: 400; list-style: none; }
@@ -187,9 +174,6 @@
 .learny .dive { border-top: 1px solid var(--ly-line-soft); padding-top: 8px; margin-top: 4px; }
 .learny .dive summary { font-size: var(--ly-fs-meta); color: var(--ly-ink-2); }
 .learny .dive .prose { margin-top: 8px; font-size: var(--ly-fs-content); line-height: 1.8; max-width: 78ch; overflow-wrap: anywhere; }
-/* A citation is a jump link to the source row, not a stray bracket. */
-.learny :is(.lesson,.dive) .prose a[href^="#learny-source-"] { font: var(--ly-fs-micro)/1 ui-monospace,monospace; color: var(--ly-ink-2); background: var(--ly-soft); border-radius: 4px; padding: 1px 4px; text-decoration: none; }
-.learny :is(.lesson,.dive) .prose a[href^="#learny-source-"]:hover { color: var(--ly-blue); }
 .learny details[id^="learny-source-"] { scroll-margin-top: 72px; }
 .learny .predict-box { border: 1px solid var(--ly-line); border-radius: var(--ly-radius-lg); padding: 8px 12px; }
 .learny .predict-box summary { font-size: var(--ly-fs-meta); color: var(--ly-ink-2); cursor: pointer; }
@@ -347,9 +331,6 @@
   .learny .brand > svg { display: none; }
   .learny .workspace-nav { padding: 0 10px; }
   .learny .goal { padding: 0 10px; }
-  .learny .setup-check { margin-left: 10px; margin-right: 10px; }
-  .learny .setup-row { grid-template-columns: 1fr auto; gap: 3px 10px; }
-  .learny .setup-row p { grid-column: 1/-1; }
   .learny .study, .learny .notes-workbench { padding: 12px 10px; }
   .learny .space-form { padding: 14px 10px; grid-template-columns: 1fr; }
   .learny .course-empty { align-items: flex-start; flex-direction: column; }
@@ -397,6 +378,18 @@
   border-radius: 999px; background: var(--ly-soft); color: var(--ly-ink-2);
   font-size: var(--ly-fs-meta); font-weight: 500; vertical-align: 1px;
 }
+
+/* Chapter sources stay out of the reading flow until expanded. */
+.learny-fence-sources { border-top: 1px solid var(--ly-line); padding: 10px 0; color: var(--ly-ink-2); font-size: var(--ly-fs-body); }
+.learny-fence-sources > summary { cursor: pointer; width: fit-content; color: var(--ly-ink-2); font-size: var(--ly-fs-body); }
+.learny-fence-sources > summary:focus-visible { outline: 2px solid var(--ly-blue); outline-offset: 4px; }
+.learny-source-count { margin-left: 10px; color: var(--ly-muted); font-size: var(--ly-fs-meta); }
+.learny-fence-sources ul { list-style: none; padding: 0; margin: 12px 0 0; display: grid; gap: 12px; }
+.learny-fence-sources li { margin: 0; overflow-wrap: anywhere; }
+.learny-fence-sources a { color: var(--ly-blue); text-decoration: underline; text-underline-offset: 3px; }
+.learny-fence-sources .learny-source-title { color: var(--ly-ink); }
+.learny-source-kind { color: var(--ly-muted); margin-left: 8px; font-size: var(--ly-fs-meta); }
+.learny-fence-sources li p { margin-top: 3px; font-size: var(--ly-fs-body); }
 
 /* 要点块 */
 .learny-fence-note {
@@ -558,8 +551,54 @@
   .learny .knowledge-root::after { display: none; }
   .learny .knowledge-branches { margin-left: 10px; }
 }
-.learny .setup-reminder { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px; padding: 8px 24px; border-bottom: 1px solid var(--ly-line); color: var(--ly-ink-2); font-size: var(--ly-fs-meta); }
+.learny .setup-reminder { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px; padding: 8px 24px; border-bottom: 1px solid var(--ly-line); background: var(--ly-blue-soft); color: var(--ly-ink-2); font-size: var(--ly-fs-meta); }
 .learny .setup-reminder .quiet { margin-left: auto; }
+.learny .space-settings { padding: 20px 24px 32px; max-width: 1040px; margin-inline: auto; }
+.learny .settings-heading { padding-bottom: 20px; border-bottom: 1px solid var(--ly-line); }
+.learny .settings-heading .settings-back { margin: 0 0 12px -8px; padding-inline: 8px; }
+.learny .settings-heading h2 { font-size: var(--ly-fs-content); font-weight: 500; }
+.learny .settings-context { margin-top: 4px; overflow-wrap: anywhere; }
+.learny .settings-section { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; padding: 24px 0; border-bottom: 1px solid var(--ly-line); }
+.learny .settings-section-heading h3, .learny .settings-environment h3 { font-size: var(--ly-fs-body); font-weight: 500; }
+.learny .settings-section-heading p { margin-top: 4px; max-width: 32ch; }
+.learny .settings-fields { display: grid; gap: 16px; min-width: 0; }
+.learny .settings-fields label { font-size: var(--ly-fs-meta); font-weight: 500; }
+.learny .settings-fields input, .learny .settings-fields textarea { font-size: var(--ly-fs-body); }
+.learny .settings-fields textarea { min-height: 7em; }
+.learny .settings-fields > p { margin-top: -8px; }
+.learny .settings-source, .learny .settings-capabilities { margin: 0; min-width: 0; }
+.learny .settings-source > div { display: grid; gap: 4px; margin-bottom: 12px; }
+.learny .settings-source > div:last-child { margin-bottom: 0; }
+.learny .settings-source dt { color: var(--ly-ink-2); font-size: var(--ly-fs-meta); }
+.learny .settings-source dd { margin: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+.learny .settings-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding-top: 16px; }
+.learny .settings-edit-state { flex: 1 1 auto; color: var(--ly-ink-2); font-size: var(--ly-fs-meta); }
+.learny .settings-actions .primary { min-height: 32px; padding: 4px 12px; font-size: var(--ly-fs-body); }
+.learny .settings-feedback { min-height: 2em; margin-top: 8px; font-size: var(--ly-fs-meta); color: var(--ly-ink-2); overflow-wrap: anywhere; }
+.learny .settings-feedback.status-error { color: var(--ly-error); }
+.learny .settings-exit { display: grid; gap: 8px; padding: 12px; margin-bottom: 16px; background: var(--ly-bg); border: 1px solid var(--ly-line-strong); border-radius: var(--ly-radius); font-size: var(--ly-fs-meta); }
+.learny .settings-environment { padding: 16px; background: var(--ly-soft); border: 1px solid var(--ly-line); border-radius: var(--ly-radius); }
+.learny .settings-environment-heading { display: flex; align-items: flex-start; flex-wrap: wrap; justify-content: space-between; gap: 12px; padding-bottom: 16px; }
+.learny .settings-environment-heading > div { flex: 1 1 260px; }
+.learny .settings-environment-heading p { margin-top: 4px; max-width: 70ch; }
+.learny .settings-environment-heading > button { flex-shrink: 0; }
+.learny .settings-capabilities > div { display: grid; grid-template-columns: minmax(0, 96px) minmax(0, 1fr); gap: 12px; padding: 12px 0; border-top: 1px solid var(--ly-line); }
+.learny .settings-capabilities dt { font-size: var(--ly-fs-meta); font-weight: 500; }
+.learny .settings-capabilities dd { margin: 0; min-width: 0; font-size: var(--ly-fs-meta); }
+.learny .settings-capabilities dd p { margin-top: 4px; color: var(--ly-ink-2); overflow-wrap: anywhere; }
+.learny .settings-capability-status { display: block; color: var(--ly-ink); overflow-wrap: anywhere; }
+.learny .settings-capability-status::before { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 6px; vertical-align: middle; background: var(--ly-warning); }
+.learny .settings-capability-status.ready::before { background: var(--ly-green); }
+.learny .settings-host-hint { padding-top: 12px; border-top: 1px solid var(--ly-line); overflow-wrap: anywhere; }
+@container learny (min-width: 720px) {
+  .learny .settings-section { grid-template-columns: minmax(0, 200px) minmax(0, 1fr); gap: 32px; }
+}
+@container learny (max-width: 500px) {
+  .learny .space-settings { padding: 16px 20px 24px; }
+  .learny .settings-section { padding: 20px 0; }
+  .learny .settings-environment { padding: 12px; }
+  .learny .settings-capabilities > div { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+}
 .learny .practice-workbench { display: grid; gap: 16px; }
 .learny .practice-workbench .manager-heading { margin-bottom: 0; }
 .learny .practice-workbench > .primary { justify-self: start; }
@@ -569,3 +608,91 @@
 @container learny (max-width: 500px) {
   .learny .setup-reminder { padding: 8px 20px; }
 }
+
+/* Notes use the same host tokens as the learning manager. Narrow panes disclose
+   the directory on demand; content is never squeezed into a third column. */
+.learny .notes-v2 .manager-heading { margin-bottom: 14px; }
+.learny .notes-columns { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
+.learny .notes-main { min-width: 0; }
+.learny .notes-breadcrumb { font-size: var(--ly-fs-meta); color: var(--ly-ink-2); margin-bottom: 12px; overflow-wrap: anywhere; }
+.learny .notes-folders { display: none; min-width: 0; font-size: var(--ly-fs-meta); }
+.learny .directory-open .notes-folders { display: block; padding-bottom: 16px; border-bottom: 1px solid var(--ly-line); }
+.learny .notes-folders button { width: 100%; text-align: left; justify-content: space-between; border: 0; padding: 8px; min-height: 34px; overflow-wrap: anywhere; font-size: var(--ly-fs-meta); }
+.learny .notes-folders button.active { color: var(--ly-blue); background: var(--ly-blue-soft); }
+.learny .notes-folders summary { min-height: 34px; padding: 6px 0; color: var(--ly-ink-2); cursor: pointer; }
+.learny .notes-folders .notes-branch { margin-left: 10px; }
+.learny .notes-branch summary { display: flex; align-items: center; gap: 4px; padding: 0; }
+.learny .notes-branch > summary::before { content: '›'; flex: 0 0 12px; text-align: center; }
+.learny .notes-branch[open] > summary::before { transform: rotate(90deg); }
+.learny .notes-branch summary::-webkit-details-marker { display: none; }
+.learny .notes-branch small { display: block; color: var(--ly-ink-2); font-size: var(--ly-fs-micro); }
+.learny .notes-branch > .notes-leaf { padding-left: 27px; font-weight: 400; color: var(--ly-ink-2); justify-content: flex-start; }
+.learny .notes-branch > .muted { padding: 6px 8px 6px 27px; }
+.learny .quick-note { margin: 12px 0 16px; }
+.learny .quick-note form { border: 1px solid var(--ly-line-strong); border-radius: var(--ly-radius); background: var(--ly-field); overflow: hidden; }
+.learny .quick-note form:focus-within { border-color: var(--ly-blue); }
+.learny .quick-note label { display: block; }
+.learny .quick-note textarea { display: block; border: 0; border-radius: 0; background: transparent; width: 100%; min-height: 86px; padding: 10px 12px 6px; resize: vertical; line-height: 1.8; font-size: var(--ly-fs-content); }
+.learny .quick-note-footer { padding: 6px 10px 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.learny .quick-note-footer span { font-size: var(--ly-fs-meta); color: var(--ly-ink-2); min-width: 0; overflow-wrap: anywhere; }
+.learny .quick-note-footer button { flex-shrink: 0; }
+.learny .quick-note > p { margin-top: 5px; min-height: 20px; }
+.learny .notes-controls { display: flex; justify-content: space-between; flex-wrap: wrap; align-items: center; gap: 8px 12px; border-bottom: 1px solid var(--ly-line); padding-bottom: 8px; }
+.learny .notes-filters { display: flex; flex-wrap: wrap; gap: 4px; }
+.learny .notes-filters button { border: 0; padding: 4px 8px; color: var(--ly-ink-2); }
+.learny .notes-filters button[aria-pressed=true] { background: var(--ly-soft); color: var(--ly-ink); }
+.learny .notes-search { min-width: 100px; flex: 1 1 120px; max-width: 200px; }
+.learny .notes-search input { width: 100%; min-height: 30px; font-size: var(--ly-fs-meta); }
+.learny button.notes-row { display: block; width: 100%; text-align: left; border: 0; border-bottom: 1px solid var(--ly-line); border-radius: 0; padding: 15px 0; }
+.learny .notes-row strong { display: block; font-size: var(--ly-fs-content); font-weight: 500; overflow-wrap: anywhere; }
+.learny .notes-excerpt { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; color: var(--ly-ink-2); font-size: var(--ly-fs-body); line-height: 1.75; margin: 6px 0 8px; overflow-wrap: anywhere; white-space: pre-line; }
+.learny .notes-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 12px; color: var(--ly-ink-2); font-size: var(--ly-fs-meta); }
+.learny .notes-state { color: var(--ly-blue); }
+.learny .notes-empty { padding: 24px 0; }
+.learny .note-detail { min-width: 0; }
+.learny .note-detail-title { font-size: calc(var(--ly-fs-content) + 2px); margin: 15px 0 8px; }
+.learny .note-location { margin: 10px 0 18px; border-bottom: 1px solid var(--ly-line); }
+.learny .note-location summary { color: var(--ly-ink-2); cursor: pointer; padding: 7px 0; font-size: var(--ly-fs-meta); }
+.learny .note-location label { display: grid; gap: 6px; padding-bottom: 10px; color: var(--ly-ink-2); font-size: var(--ly-fs-meta); }
+.learny .note-location select { width: 100%; }
+.learny .note-location > p { padding-bottom: 10px; }
+.learny .note-detail .prose { font-size: var(--ly-fs-content); line-height: 1.85; overflow-wrap: anywhere; }
+.learny .note-detail .prose pre { max-width: 100%; overflow: auto; padding: 12px; background: var(--ly-code-bg); border-radius: var(--ly-radius); }
+.learny .note-detail .prose img { max-width: 100%; height: auto; }
+.learny .note-detail-tools { display: flex; flex-wrap: wrap; gap: 6px; margin: 16px 0 12px; }
+.learny .note-edit-form { display: grid; gap: 12px; }
+.learny .note-edit-form label { display: grid; gap: 6px; }
+.learny .note-edit-body { min-height: 250px; line-height: 1.85; }
+.learny .note-edit-form > button { justify-self: start; }
+.learny .note-organizer { border-top: 1px solid var(--ly-line); padding: 14px 0; }
+.learny .note-custom, .learny .note-revision-history { margin-top: 10px; }
+.learny .note-detail :is(.note-custom, .note-revision-history, .note-supplement) > summary { padding: 8px 0; color: var(--ly-ink-2); cursor: pointer; font-size: var(--ly-fs-meta); }
+.learny .note-detail textarea { width: 100%; margin: 6px 0 10px; }
+.learny .note-revision-history select { width: 100%; font-size: var(--ly-fs-meta); }
+.learny .note-revision { margin-top: 12px; padding: 12px 0; border-top: 1px solid var(--ly-line); }
+.learny .note-revision > details { margin: 12px 0; }
+.learny .note-revision > details > summary { padding: 8px 0; cursor: pointer; }
+.learny .note-revision > h3 { margin: 12px 0; }
+.learny .note-revision > .muted { margin: 12px 0; }
+.learny .note-supplement { border-top: 1px solid var(--ly-line); }
+.learny .note-review-entry { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding-top: 18px; margin-top: 16px; border-top: 1px solid var(--ly-line); }
+.learny .note-review-entry button { flex-shrink: 0; }
+.learny .note-review { display: grid; gap: 12px; }
+.learny .note-review > p { font-size: var(--ly-fs-content); }
+.learny .note-review > button { justify-self: start; }
+.learny .recall-answer { padding: 16px 0; border-top: 1px solid var(--ly-line); }
+.learny .current-quick { padding-top: 18px; border-top: 1px solid var(--ly-line); }
+.learny-message-capture { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.learny-message-capture button { border: 0; border-radius: var(--dsw-radius-sm, 8px); background: transparent; color: var(--dsw-alias-label-secondary, #61666b); font: inherit; font-size: 12px; cursor: pointer; padding: 5px 8px; min-height: 28px; }
+.learny-message-capture button:hover { background: var(--dsw-alias-interactive-bg-hover, rgba(38,49,72,.06)); }
+.learny-message-capture button:focus-visible { outline: 2px solid var(--dsw-alias-link, #4176e6); outline-offset: 2px; }
+.learny-message-capture > span { font-size: 12px; color: var(--dsw-alias-state-error-primary, #dc2626); }
+@container learny (min-width: 720px) {
+  .learny .notes-columns { grid-template-columns: minmax(180px, 220px) minmax(0, 1fr); gap: 24px; }
+  .learny .notes-folders, .learny .directory-open .notes-folders { display: block; padding: 0 16px 0 0; border-bottom: 0; border-right: 1px solid var(--ly-line); }
+  .learny .directory-toggle { display: none; }
+}
+
+.learny-message-capture { flex-shrink: 0; }
+.learny-message-capture button { display: inline-flex; align-items: center; justify-content: center; white-space: nowrap; min-width: 28px; padding: 5px; }
+.learny-message-capture .learny-icon { width: 16px; height: 16px; }

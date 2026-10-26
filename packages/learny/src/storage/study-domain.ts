@@ -29,7 +29,7 @@ export const studyDomain = defineDomain({ name: 'learny_study', version: 1, tabl
   // so a route stays small and a lesson can be written or rewritten on demand.
   lessons: domainTable(z.object({
     workspaceId: z.uuid(), nodeId: z.string().min(1).max(64), materialKey: z.string().min(1).max(200),
-    lesson: z.string().min(1).max(8000), createdAt: z.iso.datetime(),
+    lesson: z.string().min(1).max(24_000), createdAt: z.iso.datetime(),
   })),
   // Follow-up explanations the learner asked for, newest last.
   deep_dives: domainTable(z.object({
@@ -46,6 +46,7 @@ export const studyDomain = defineDomain({ name: 'learny_study', version: 1, tabl
   node_tasks: domainTable(z.object({
     id: z.uuid(), workspaceId: z.uuid(), nodeId: z.string().min(1).max(64),
     sessionId: z.string().min(1).max(200), requestId: z.string().min(1).max(200), askedAt: z.iso.datetime(),
+    courseVersion: z.string().min(1).max(300).optional(), nodeTitle: z.string().min(1).max(500).optional(),
   })),
   // 讲解里出现过的块（结构图、自测、要点卡）。讲解发生在对话里，块也写在那里，
   // 这里按出现次序回收一份载荷，节点页才能回看，导出也才有同一份数据可用。

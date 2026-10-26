@@ -4,7 +4,7 @@ import type { StudyService } from '../core/study.ts'
 import type { Attempt, AttemptAction, DeepDive, NodeTask, StudyCourse, StudySnapshot, SubmitAttempt, OrganizeNote, NoteRevision, TutorRequest, TutorMessage } from '../core/study-types.ts'
 import type { NoteSummary } from '../core/types.ts'
 import type { LearningService } from '../core/service.ts'
-import type { CapabilityStatus, CreateWorkspace, NoteDocument, SaveNote, Snapshot, Workspace } from '../core/types.ts'
+import type { CaptureNote, CapabilityStatus, CreateWorkspace, UpdateWorkspace, NoteDocument, SaveNote, Snapshot, Workspace } from '../core/types.ts'
 
 declare module '@deepseek-ai/cordis' {
   interface Context { learny: LearnyController }
@@ -37,10 +37,40 @@ export class LearnyController extends TypertRemoteService {
     return this.service.bindWorkspace(sessionId, workspaceId)
   }
 
+  @Remote('updateWorkspace')
+  async updateWorkspace(request: UpdateWorkspace, signal: AbortSignal): Promise<Workspace> {
+    signal.throwIfAborted()
+    return this.service.updateWorkspace(request)
+  }
+
   @Remote('createNote')
   async createNote(workspaceId: string, title: string, signal: AbortSignal): Promise<NoteDocument> {
     signal.throwIfAborted()
     return this.service.createNote(workspaceId, title)
+  }
+
+  @Remote('captureNote')
+  async captureNote(request: CaptureNote, signal: AbortSignal): Promise<NoteDocument> {
+    signal.throwIfAborted()
+    return this.study.captureNote(request)
+  }
+
+  @Remote('captureMessage')
+  async captureMessage(sessionId: string, messageId: string, signal: AbortSignal): Promise<NoteDocument> {
+    signal.throwIfAborted()
+    return this.study.captureMessage(sessionId, messageId)
+  }
+
+  @Remote('askAboutNote')
+  async askAboutNote(workspaceId: string, noteId: string, sessionId: string, question: string, signal: AbortSignal): Promise<void> {
+    signal.throwIfAborted()
+    return this.study.askAboutNote(workspaceId, noteId, sessionId, question, signal)
+  }
+
+  @Remote('reviewNote')
+  async reviewNote(workspaceId: string, noteId: string, expectedVersion: string, outcome: 'remembered' | 'uncertain', signal: AbortSignal): Promise<NoteDocument> {
+    signal.throwIfAborted()
+    return this.study.reviewNote(workspaceId, noteId, expectedVersion, outcome)
   }
 
   @Remote('readNote')

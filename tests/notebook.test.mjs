@@ -62,3 +62,33 @@ test('workspace ownership and filename validation prevent reading notes across s
     await assert.rejects(instance.service.createWorkspace({ name: '无效项目', goal: '', kind: 'project', materialPath: '.' }), error => error.code === 'learny/invalid-input')
   } finally { await instance.close(); await rm(directory, { recursive: true, force: true }) }
 })
+
+test('space settings persist across restarts without changing source, notes or bindings; stale edits are rejected', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'learny-settings-'))
+  let instance = await runtime(directory)
+  try {
+    const space = await instance.service.createWorkspace({ name: 'Kubernetes 基础学习', goal: '理解核心概念', kind: 'project', materialPath: directory })
+    await instance.service.bindWorkspace('settings-chat', space.id)
+    const note = await instance.service.createNote(space.id, 'Pod 生命周期')
+    const expected = { name: space.name, goal: space.goal }
+    await assert.rejects(instance.service.updateWorkspace({ workspaceId: space.id, name: ' ', goal: '', expected }), error => error.code === 'learny/invalid-input')
+    const results = await Promise.allSettled([
+      instance.service.updateWorkspace({ workspaceId: space.id, name: '  Kubernetes 实践  ', goal: '搭建集群并验证调度与网络', expected }),
+      instance.service.updateWorkspace({ workspaceId: space.id, name: '过期编辑', goal: '另一个目标', expected }),
+    ])
+    assert.equal(results[0].status, 'fulfilled')
+    assert.equal(results[1].status, 'rejected')
+    assert.equal(results[1].reason.code, 'learny/workspace-conflict')
+    const updated = results[0].value
+    assert.deepEqual(updated, { ...space, name: 'Kubernetes 实践', goal: '搭建集群并验证调度与网络' })
+    await instance.close()
+    instance = await runtime(directory)
+    const snapshot = await instance.service.snapshot('settings-chat')
+    assert.equal(snapshot.workspaceId, space.id)
+    assert.deepEqual(snapshot.workspaces[0], updated)
+    assert.equal(snapshot.notes[0].id, note.id)
+    await assert.rejects(instance.service.updateWorkspace({ workspaceId: space.id, name: '旧值', goal: '', expected }), error => error.code === 'learny/workspace-conflict')
+    const cleared = await instance.service.updateWorkspace({ workspaceId: space.id, name: updated.name, goal: '', expected: { name: updated.name, goal: updated.goal } })
+    assert.equal(cleared.goal, '')
+  } finally { await instance.close(); await rm(directory, { recursive: true, force: true }) }
+})

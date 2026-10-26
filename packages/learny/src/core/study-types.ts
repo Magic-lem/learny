@@ -65,7 +65,7 @@ export interface DeepDive {
   requestId?: string;
 }
 /** One "start this node in the chat" request: the conversation is where it is answered. */
-export interface NodeTask { id: string; workspaceId: string; nodeId: string; sessionId: string; requestId: string; askedAt: string }
+export interface NodeTask { id: string; workspaceId: string; nodeId: string; sessionId: string; requestId: string; askedAt: string; courseVersion?: string; nodeTitle?: string }
 /** 讲解里穿插的块，按出现次序回收：结构图、自测、要点卡。 */
 export interface StudyBlock { id: string; workspaceId: string; nodeId: string; kind: string; payload: string; at: string }
 export interface AttemptAction { workspaceId: string; attemptId: string; expectedRevision: number; action: 'prediction' | 'skipPrediction' | 'reading' | 'hint' | 'startPractice' | 'practice' | 'explanation'; text: string }
@@ -83,6 +83,8 @@ export interface ModelGateway { generate(request: ModelRequest, signal: AbortSig
 
 /** The current chat session, as seen by a plugin that wants the learner's question answered there. */
 export interface ChatGateway {
+  /** Read a finalized assistant message by its durable host id. */
+  message?(request: { sessionId: string; messageId: string }): Promise<{ content: string; requestIds: string[] } | null>
   /** Admit one message into the session; resolves to the admitted request id. */
   ask(request: { sessionId: string; text: string }, signal: AbortSignal): Promise<string>
   /** Read the reply that followed an admitted request, once the chat has answered. */

@@ -18,6 +18,22 @@ interface SessionPrompter {
 export class DshChatGateway implements ChatGateway {
   constructor(private ctx: Context) {}
 
+  async message(request: { sessionId: string; messageId: string }): Promise<{ content: string; requestIds: string[] } | null> {
+    const session = await this.ctx.typert.lookups.get('session')?.resolve(SessionId(request.sessionId))
+    if (!(session instanceof Session)) return null
+    const requestIds: string[] = []
+    for (const event of session.snapshotEvents()) {
+      if (event.type === 'user/message') {
+        const rpcId = (event.data as { source?: { rpcId?: string } }).source?.rpcId
+        if (rpcId) requestIds.unshift(rpcId)
+      }
+      if (event.type !== 'assistant/message') continue
+      const message = (event.data as { message?: { id?: string; content?: readonly { type?: string; text?: string }[] } }).message
+      if (message?.id === request.messageId) return { content: (message.content ?? []).filter(part => part.type === 'text' && typeof part.text === 'string').map(part => part.text!).join(''), requestIds }
+    }
+    return null
+  }
+
   async ask(request: { sessionId: string; text: string }, signal: AbortSignal): Promise<string> {
     signal.throwIfAborted()
     const controller = this.ctx.get('sessionController') as SessionPrompter | undefined

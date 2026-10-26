@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
-import Markdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
+import { LessonMarkdown } from './lesson-markdown.tsx'
 import type { ClientRemote } from '@deepseek-ai/dsh-api-gateway/client'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type { Attempt, TutorMessage } from '../core/study-types.ts'
@@ -54,7 +53,7 @@ export function TutorPanel({ attempt, sessionId, messages, api, t, onRefresh }: 
       onScroll={event => { const el = event.currentTarget; follow.current = el.scrollHeight - el.scrollTop - el.clientHeight < 48 }}>
       {messages.map(message => <article className={`tutor-message ${message.role}`} key={message.id}>
         <header><strong>{message.role === 'assistant' ? t('tutorRole') : t('you')}</strong><time dateTime={message.createdAt}>{new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</time></header>
-        {message.role === 'assistant' ? <div className="prose"><Markdown remarkPlugins={[remarkGfm]}>{message.content}</Markdown></div> : <p className="preserve">{message.content}</p>}
+        {message.role === 'assistant' ? <div className="prose"><LessonMarkdown>{message.content}</LessonMarkdown></div> : <p className="preserve">{message.content}</p>}
       </article>)}
       {!messages.length && <div className="tutor-empty"><p>{t('tutorEmpty')}</p><span>{t('tutorIntro')}</span></div>}
       {busy && <p className="tutor-wait" role="status">{t('tutorWorking')}</p>}

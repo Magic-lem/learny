@@ -3,7 +3,8 @@ import { mkdir, readFile, readdir, open, rename, unlink, lstat } from 'node:fs/p
 import { join } from 'node:path'
 import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
 import { invalid, notFound } from '../core/errors.ts'
-import type { NoteDocument, NoteSummary, SaveNote } from '../core/types.ts'
+import { noteContextSchema } from '../core/note-context.ts'
+import type { NoteContext, NoteDocument, NoteSummary, SaveNote } from '../core/types.ts'
 
 interface Metadata {
   id: string
@@ -11,6 +12,7 @@ interface Metadata {
   title: string
   createdAt: string
   updatedAt: string
+  context?: NoteContext
 }
 
 /** Filename ids never come from note titles or arbitrary filesystem paths. */
@@ -61,6 +63,7 @@ function decode(raw: string, path: string, workspaceId: string, noteId: string):
     || !('updatedAt' in meta) || typeof meta.updatedAt !== 'string') invalid('note frontmatter')
   return {
     id: noteId, workspaceId, title: meta.title, createdAt: meta.createdAt, updatedAt: meta.updatedAt,
+    context: 'context' in meta && meta.context !== undefined ? noteContextSchema.parse(meta.context) : undefined,
     version: hash(raw), path, content: raw.slice(match[0].length),
   }
 }
@@ -80,7 +83,7 @@ export class NotesFiles {
     const entries = await readdir(directory)
     const notes = await Promise.all(entries.filter(name => /^[0-9a-f-]{36}\.md$/i.test(name))
       .map(name => this.read(workspaceId, name.slice(0, -3))))
-    return notes.map(({ content: _content, path: _path, ...summary }) => summary)
+    return notes.map(({ content, path: _path, ...summary }) => ({ ...summary, excerpt: content.slice(0, 240) }))
       .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
   }
 
@@ -96,11 +99,11 @@ export class NotesFiles {
     }
   }
 
-  async create(workspaceId: string, title: string): Promise<NoteDocument> {
-    const noteId = randomUUID()
+  async create(workspaceId: string, title: string, content = '', context?: NoteContext, noteId: string = randomUUID()): Promise<NoteDocument> {
+    id(noteId)
     const now = new Date().toISOString()
     await mkdir(this.directory(workspaceId), { recursive: true, mode: 0o700 })
-    await atomicWrite(this.path(workspaceId, noteId), encode({ id: noteId, workspaceId, title, createdAt: now, updatedAt: now }, ''))
+    await atomicWrite(this.path(workspaceId, noteId), encode({ id: noteId, workspaceId, title, createdAt: now, updatedAt: now, context }, content))
     return this.read(workspaceId, noteId)
   }
 
@@ -122,7 +125,7 @@ export class NotesFiles {
       await atomicWrite(join(revisions, `${current.version}.md`), old)
       await atomicWrite(current.path, encode({
         id: current.id, workspaceId: current.workspaceId, title: request.title,
-        createdAt: current.createdAt, updatedAt: new Date().toISOString(),
+        createdAt: current.createdAt, updatedAt: new Date().toISOString(), context: request.context ?? (current.context && request.content !== current.content ? { ...current.context, organized: false } : current.context),
       }, request.content))
       return this.read(request.workspaceId, request.noteId)
     })

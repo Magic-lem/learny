@@ -15,6 +15,7 @@ import { useEffect, useState } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { DiagramView } from './diagram.tsx'
 import type { DiagramSpec } from './diagram-layout.ts'
+import { parseSourcesBlock, sourceHref, type SourcesBlock } from './source-block.ts'
 
 export type QuizQuestion = {
   q: string
@@ -28,8 +29,9 @@ export type FenceBlock =
   | { block: 'note'; title?: string; body: string }
   | { block: 'quiz'; title?: string; questions: QuizQuestion[] }
   | DiagramSpec
+  | SourcesBlock
 
-const BLOCK_TYPES = new Set(['note', 'quiz', 'diagram'])
+const BLOCK_TYPES = new Set(['note', 'quiz', 'diagram', 'sources'])
 const HOST_CLASS = 'learny-fence-host'
 const HIDDEN_CLASS = 'learny-fence-hidden'
 
@@ -42,6 +44,7 @@ export function parseFence(text: string): FenceBlock | null {
   if (typeof value !== 'object' || value === null) return null
   const block = (value as { block?: unknown }).block
   if (typeof block !== 'string' || !BLOCK_TYPES.has(block)) return null
+  if (block === 'sources') return parseSourcesBlock(value)
   const candidate = value as FenceBlock
   if (candidate.block === 'quiz' && !Array.isArray(candidate.questions)) return null
   if (candidate.block === 'note' && typeof candidate.body !== 'string') return null
@@ -96,8 +99,24 @@ function QuizBlock({ block }: { block: Extract<FenceBlock, { block: 'quiz' }> })
   </section>
 }
 
+/** A quiet, keyboard-accessible bibliography, collapsed until requested. */
+function SourcesView({ block }: { block: SourcesBlock }) {
+  return <details className="learny-fence-sources">
+    <summary>本章依据<span className="learny-source-count">{block.items.length} 份资料</span></summary>
+    <ul>{block.items.map((item, index) => {
+      const href = sourceHref(item.url)
+      return <li key={index}>
+        {href ? <a href={href} target="_blank" rel="noopener noreferrer">{item.title}</a> : <span className="learny-source-title">{item.title}</span>}
+        {item.url?.startsWith('file:') && <span className="learny-source-kind">本地文件</span>}
+        {item.note && <p>{item.note}</p>}
+      </li>
+    })}</ul>
+  </details>
+}
+
 export function FenceView({ payload }: { payload: FenceBlock }) {
   return <div className="learny-fence" data-learny-fence={payload.block}>
+    {payload.block === 'sources' && <SourcesView block={payload} />}
     {payload.block === 'note' && <NoteBlock block={payload} />}
     {payload.block === 'quiz' && <QuizBlock block={payload} />}
     {payload.block === 'diagram' && <DiagramView spec={payload} />}

@@ -1,62 +1,60 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 420" width="960" height="420" role="img" aria-label="Learny 架构">
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="454" viewBox="0 0 960 454" role="img" aria-labelledby="title desc">
+  <title id="title">Learny 与 dsh 的职责和数据边界</title>
+  <desc id="desc">dsh 原生对话负责实时教学，Learny 面板通过本机学习服务管理路线和笔记；数据保存在本机，模型与搜索沿用 dsh 能力。</desc>
   <style>
-    .box { fill: rgba(128,132,140,.10); stroke: rgba(128,132,140,.45); stroke-width: 1.2; rx: 10; }
-    .inner { fill: rgba(65,118,230,.10); stroke: rgba(65,118,230,.55); stroke-width: 1.2; rx: 8; }
-    .t { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', Roboto, Arial, sans-serif; fill: #8a8f98; font-size: 13px; }
-    .th { font-size: 14px; font-weight: 600; fill: #8a8f98; }
-    .tb { font-size: 14px; font-weight: 600; fill: #6b7280; }
-    .ts { font-size: 11.5px; }
-    .line { stroke: rgba(128,132,140,.6); stroke-width: 1.3; fill: none; marker-end: url(#arrow); }
-    .dash { stroke-dasharray: 4 4; }
+    text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif; fill: #6b7280; font-size: 13px; }
+    .head { font-size: 14px; font-weight: 600; }
+    .label { font-size: 14px; font-weight: 600; fill: #4176e6; }
+    .small { font-size: 12px; }
+    .box { fill: #80848c; fill-opacity: .06; stroke: #80848c; stroke-opacity: .45; }
+    .accent { fill: #4176e6; fill-opacity: .05; stroke: #4176e6; stroke-opacity: .55; }
+    .line { fill: none; stroke: #80848c; stroke-width: 1.3; marker-end: url(#arrow); }
   </style>
   <defs>
-    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-      <path d="M 0 0 L 10 5 L 0 10 z" fill="rgba(128,132,140,.75)"/>
-    </marker>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M1 1L9 5L1 9" fill="none" stroke="#80848c" stroke-width="1.5"/></marker>
   </defs>
-
-  <rect class="box" x="1" y="1" width="958" height="418" rx="14" fill="none"/>
-
-  <text class="t th" x="28" y="40">浏览器（dsh 右侧工作台）</text>
-  <rect class="inner" x="28" y="54" width="270" height="70"/>
-  <text class="t tb" x="44" y="82">Learny 学习面板</text>
-  <text class="t ts" x="44" y="104">路线 · 任务阶段 · 讲解 · 追问 · 笔记</text>
-
-  <text class="t th" x="345" y="40">dsh 宿主侧</text>
-  <rect class="inner" x="345" y="54" width="290" height="70"/>
-  <text class="t tb" x="361" y="82">Learny Remote API</text>
-  <text class="t ts" x="361" y="104">Typert 生成，前后端共享类型</text>
-  <rect class="inner" x="345" y="136" width="290" height="150"/>
-  <text class="t tb" x="361" y="164">学习服务</text>
-  <text class="t ts" x="361" y="186">空间与绑定 · 路线规划 · 讲解按需生成</text>
-  <text class="t ts" x="361" y="206">逐标准评价 · 补课 · 追问 · 笔记整理</text>
-  <text class="t ts" x="361" y="226">来源身份判重 · 正文缓存 · 调用记账与预算</text>
-  <text class="t ts" x="361" y="252" fill="#8a8f98">模型与网络调用只发生在这一层</text>
-  <rect class="inner" x="345" y="300" width="290" height="88"/>
-  <text class="t tb" x="361" y="328">dsh 能力（Learny 不持有凭据）</text>
-  <text class="t ts" x="361" y="350">ctx.llm · ctx.web.search · ctx.web.fetch</text>
-  <text class="t ts" x="361" y="372">换模型或换搜索供应商都不用改 Learny</text>
-
-  <text class="t th" x="672" y="40">本机数据</text>
-  <rect class="inner" x="672" y="54" width="260" height="88"/>
-  <text class="t tb" x="688" y="82">SQLite（learny.sqlite）</text>
-  <text class="t ts" x="688" y="104">空间 · 路线 · 尝试 · 讲解 · 追问</text>
-  <text class="t ts" x="688" y="124">来源指纹 · 正文缓存 · 调用记录</text>
-  <rect class="inner" x="672" y="156" width="260" height="70"/>
-  <text class="t tb" x="688" y="184">Markdown 笔记（notes/）</text>
-  <text class="t ts" x="688" y="206">正文是普通文件，可用任何编辑器打开</text>
-
-  <text class="t th" x="672" y="286">外部服务</text>
-  <rect class="inner" x="672" y="300" width="260" height="88"/>
-  <text class="t ts" x="688" y="326">模型推理 · 网页搜索 · 网页抓取</text>
-  <text class="t ts" x="688" y="348">凭据由 dsh profile 管理</text>
-  <text class="t ts" x="688" y="370">课程只保留来源标题 / 链接 / SHA256</text>
-
-  <path class="line" d="M 298 89 L 339 89"/>
-  <path class="line" d="M 635 89 L 666 89"/>
-  <path class="line" d="M 490 124 L 490 134"/>
-  <path class="line dash" d="M 635 211 L 666 211"/>
-  <path class="line" d="M 635 344 L 666 344"/>
-
-  <text class="t ts" x="28" y="404">会话由 dsh 管理；Learny 状态独立于单条聊天，多个聊天可以绑定同一个学习空间。</text>
+  <rect x="1" y="1" width="958" height="452" rx="12" fill="none" stroke="#80848c" stroke-opacity=".3"/>
+  <text class="head" x="28" y="36">浏览器 · 同一个 dsh 工作区</text>
+  <text class="head" x="350" y="36">本机 dsh 宿主</text>
+  <text class="head" x="682" y="36">本机数据与外部服务</text>
+  <rect class="accent" x="28" y="56" width="268" height="108" rx="8"/>
+  <text class="label" x="44" y="84">dsh 原生对话</text>
+  <text x="44" y="110">章节讲解 · 随时追问 · 工具调用</text>
+  <text x="44" y="134">正文内图解、自测与章末依据</text>
+  <rect class="accent" x="28" y="210" width="268" height="108" rx="8"/>
+  <text class="label" x="44" y="238">Learny 管理面板</text>
+  <text x="44" y="264">当前 · 地图 · 资料 · 笔记</text>
+  <text x="44" y="288">随手记 · 按章节整理 · 回忆复习</text>
+  <path class="line" d="M162 210V170"/>
+  <text class="small" x="177" y="189">开始章节 / 带笔记追问</text>
+  <rect class="box" x="350" y="56" width="278" height="108" rx="8"/>
+  <text class="label" x="366" y="84">dsh Agent 与会话</text>
+  <text x="366" y="110">处理原生消息与实时教学</text>
+  <text x="366" y="134">保存对话，提供会话关联</text>
+  <rect class="box" x="350" y="210" width="278" height="108" rx="8"/>
+  <text class="label" x="366" y="238">Learny Remote API / 学习服务</text>
+  <text x="366" y="264">路线规划 · 笔记整理 · 可选评价</text>
+  <text x="366" y="288">资料去重 · 缓存 · 研究调用预算</text>
+  <rect class="box" x="350" y="350" width="278" height="68" rx="8"/>
+  <text class="label" x="366" y="377">dsh 模型与网页能力</text>
+  <text class="small" x="366" y="400">模型、搜索供应商与凭据由 dsh 配置</text>
+  <path class="line" d="M296 110H344"/>
+  <path class="line" d="M296 264H344"/>
+  <path class="line" d="M489 210V170"/>
+  <path class="line" d="M489 318V344"/>
+  <rect class="accent" x="682" y="56" width="250" height="108" rx="8"/>
+  <text class="label" x="698" y="84">dsh 会话存储</text>
+  <text x="698" y="110">消息与运行记录由宿主管理</text>
+  <text class="small" x="698" y="134">Learny 关联到对应会话</text>
+  <rect class="accent" x="682" y="210" width="250" height="108" rx="8"/>
+  <text class="label" x="698" y="238">Learny 本地学习数据</text>
+  <text x="698" y="264">SQLite：空间、路线、关联与缓存</text>
+  <text x="698" y="288">Markdown 笔记与历史快照</text>
+  <rect class="accent" x="682" y="350" width="250" height="68" rx="8"/>
+  <text class="label" x="698" y="377">外部模型与网页服务</text>
+  <text class="small" x="698" y="400">相关材料按请求发送给配置的服务</text>
+  <path class="line" d="M628 110H676"/>
+  <path class="line" d="M628 264H676"/>
+  <path class="line" d="M628 384H676"/>
+  <text class="small" x="28" y="437">一个学习空间可关联多个 dsh 会话；实时教学在对话中，长期学习记录在 Learny 中。</text>
 </svg>

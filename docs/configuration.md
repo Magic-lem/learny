@@ -66,7 +66,7 @@ export DEEPSEEK_API_KEY='...'
 
 ```sh
 dsh plugin --profile web add link:$PWD/packages/web-search-oneapi
-# 或打包产物：dsh plugin --profile web add ./artifacts/dsh-web-search-oneapi-0.1.2.tgz
+# 或打包产物：dsh plugin --profile web add ./artifacts/dsh-web-search-oneapi-0.1.3.tgz
 ```
 
 再加一份 overlay，示例见 [examples/dsh-oneapi-web-search.patch.yml](../examples/dsh-oneapi-web-search.patch.yml)：

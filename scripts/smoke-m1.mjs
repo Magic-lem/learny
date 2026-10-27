@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict'
 import { randomUUID, createHash } from 'node:crypto'
 import { readFile, writeFile } from 'node:fs/promises'
+const pluginVersion=JSON.parse(await readFile(new URL('../packages/learny/package.json',import.meta.url),'utf8')).version
+const hostVersion=JSON.parse(await readFile(new URL('../node_modules/@deepseek-ai/dsh/package.json',import.meta.url),'utf8')).version
 const base=process.env.LEARNY_SMOKE_URL,token=process.env.LEARNY_SMOKE_TOKEN,reportPath=process.env.LEARNY_SMOKE_REPORT
 if(!base||!token||!reportPath)throw Error('Set LEARNY_SMOKE_URL, LEARNY_SMOKE_TOKEN and LEARNY_SMOKE_REPORT')
 const auth=await fetch(`${base}/?token=${encodeURIComponent(token)}`,{redirect:'manual'}),cookie=auth.headers.getSetCookie().map(row=>row.split(';')[0]).join('; ')
@@ -52,7 +54,7 @@ if(process.argv.includes('--resume')){
  }
  assert.equal((await call('learny/searchNotes',{workspaceId,query:'执行函数'})).length,1)
  const secondSessionId=`session-${randomUUID()}`;await call('session/create',{request:{sessionId:secondSessionId,workspaceId:dshWorkspaceId}});await call('session/rename',{request:{sessionId:secondSessionId,title:'Learny · 继续同一空间'}});await call('learny/bindWorkspace',{sessionId:secondSessionId,workspaceId})
- report={base,sessionId,secondSessionId,dshWorkspaceId,workspaceId,noteId:note.id,originalHash:hash(original),attempts,revisions,pluginVersion:'0.1.3',hostVersion:'0.2.0-rc.2',verifiedAt:new Date().toISOString()}
+ report={base,sessionId,secondSessionId,dshWorkspaceId,workspaceId,noteId:note.id,originalHash:hash(original),attempts,revisions,pluginVersion,hostVersion,verifiedAt:new Date().toISOString()}
 }
 for(const sessionId of[report.sessionId,report.secondSessionId])assert.equal((await call('learny/snapshot',{sessionId})).workspaceId,report.workspaceId)
 const note=await call('learny/readNote',{workspaceId:report.workspaceId,noteId:report.noteId});assert.equal(hash(note.content),report.originalHash)

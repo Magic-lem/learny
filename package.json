@@ -7,13 +7,13 @@
     "build": "node scripts/build.mjs",
     "typecheck": "tsc -p packages/learny/tsconfig.host.json --noEmit && tsc -p packages/learny/tsconfig.client.json --noEmit && tsc -p packages/web-search-oneapi/tsconfig.json --noEmit",
     "test": "node --test tests/*.test.mjs",
-    "pack:plugin": "pnpm --dir packages/learny pack --out ../../artifacts/dsh-plugin-learny-0.1.4.tgz && pnpm --dir packages/web-search-oneapi pack --out ../../artifacts/dsh-web-search-oneapi-0.1.2.tgz",
+    "pack:plugin": "node scripts/pack-plugins.mjs",
     "demo:install": "node scripts/demo-web.mjs install",
     "demo:web": "node scripts/demo-web.mjs start"
   },
   "devDependencies": {
-    "@deepseek-ai/dsh": "0.2.0-rc.2",
-    "@deepseek-ai/dsh-typert-generator": "0.2.0-rc.2",
+    "@deepseek-ai/dsh": "0.2.1-rc.2",
+    "@deepseek-ai/dsh-typert-generator": "0.2.1-rc.2",
     "@types/node": "^24.0.0",
     "@types/react": "^18.3.0",
     "esbuild": "0.25.11",

@@ -15,7 +15,7 @@ dsh plugin --profile web add "link:$PWD/packages/learny"
 dsh web
 ```
 
-前提是 Node.js 24+、pnpm，以及已经能正常对话的 dsh。本版本验证的宿主基线是 `@deepseek-ai/dsh@0.2.0-rc.2`；其他版本的兼容性需另行验证。装好后重启 dsh，在右侧工作台选择 Learny。
+前提是 Node.js 24+、pnpm，以及已经能正常对话的 dsh。本版本验证的宿主基线是 `@deepseek-ai/dsh@0.2.1-rc.2`；其他版本的兼容性需另行验证。装好后重启 dsh，在右侧工作台选择 Learny。
 
 已有模型和搜索配置可以直接复用，无需再为 Learny 配置供应商或使用 Demo。主题学习需要 dsh 网页搜索与抓取；默认 DeepSeek 搜索的凭据由 dsh 管理。OneAPI 搜索适配器是可选项。
 

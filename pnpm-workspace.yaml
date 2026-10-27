@@ -8,4 +8,4 @@ allowBuilds:
   node-pty: true
   protobufjs: false
 patchedDependencies:
-  '@deepseek-ai/dsh-typert-generator@0.2.0-rc.2': patches/@deepseek-ai__dsh-typert-generator@0.2.0-rc.2.patch
+  '@deepseek-ai/dsh-typert-generator@0.2.1-rc.2': patches/@deepseek-ai__dsh-typert-generator@0.2.1-rc.2.patch

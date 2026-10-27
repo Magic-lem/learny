@@ -10,7 +10,7 @@
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-4176e6?style=flat-square" alt="MIT License"></a>
   <img src="https://img.shields.io/badge/node-%E2%89%A524-4176e6?style=flat-square" alt="Node 24+">
-  <img src="https://img.shields.io/badge/dsh-0.2.0--rc.2-4176e6?style=flat-square" alt="dsh 0.2.0-rc.2">
+  <img src="https://img.shields.io/badge/dsh-0.2.1--rc.2-4176e6?style=flat-square" alt="dsh 0.2.1-rc.2">
   <img src="https://img.shields.io/badge/%E6%95%B0%E6%8D%AE-%E6%9C%AC%E5%9C%B0%E4%BC%98%E5%85%88-4176e6?style=flat-square" alt="本地优先">
 </p>
 
@@ -104,7 +104,7 @@ export DEEPSEEK_API_KEY='...'
 dsh web --patch ./examples/dsh-model.patch.yml
 ```
 
-`dsh plugin add` 就是在该 profile 里执行 `pnpm add`，所以来源可以是：源码目录 `link:$PWD/packages/learny`（改完 `pnpm build` 即生效）、打包产物 `./artifacts/dsh-plugin-learny-0.1.4.tgz`（`pnpm pack:plugin` 产出，适合分发和固定版本）、或发布到 npm 后的包名。装进 `web` 就是装进你日常用的那个 dsh；想隔离出一份独立 profile 时，把 `web` 换成你自己的 profile 名即可。完整步骤见 **[安装与使用](docs/install-and-use.md)**。
+`dsh plugin add` 就是在该 profile 里执行 `pnpm add`，所以来源可以是：源码目录 `link:$PWD/packages/learny`（改完 `pnpm build` 即生效）、打包产物 `./artifacts/dsh-plugin-learny-0.1.5.tgz`（`pnpm pack:plugin` 产出，适合分发和固定版本）、或发布到 npm 后的包名。装进 `web` 就是装进你日常用的那个 dsh；想隔离出一份独立 profile 时，把 `web` 换成你自己的 profile 名即可。完整步骤见 **[安装与使用](docs/install-and-use.md)**。
 
 第一次打开时，Learny 顶部会做一次能力自检（模型 / 网页搜索 / 网页抓取）。项目空间只用本地材料，主题空间才需要搜索。
 
@@ -160,7 +160,7 @@ pnpm demo:install && pnpm demo:web   # 本地起一个 demo 宿主
 
 ## 状态与限制
 
-- 宿主基线是 `dsh@0.2.0-rc.2`（预发布版本），插件声明的兼容范围以此为准；升级 dsh 前先看 [维护者笔记里的基线说明](docs/internal/runtime-baseline.md)。
+- 宿主基线是 `dsh@0.2.1-rc.2`（预发布版本），插件声明的兼容范围以此为准；升级 dsh 前先看 [维护者笔记里的基线说明](docs/internal/runtime-baseline.md)。
 - 面向单用户、本地优先：没有服务端、没有账号体系，多人共用一台机器请各自使用独立 `dataDir`。
 - Web 宿主已实际验证；Desktop 原生窗口尚未验证。
 - 讲解、评价、追问都依赖模型，输出质量取决于你配置的模型；讲解质量不达标可以重写某节，或换一个模型再试。

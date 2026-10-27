@@ -14,7 +14,7 @@ Learny 是一个 dsh 插件：它装在 dsh profile 里，学习数据留在本�
 |---|---|
 | Node.js | 24 及以上（`node -v`） |
 | pnpm | 用来安装工作区和打包插件 |
-| dsh | 版本要覆盖插件声明的宿主基线，本仓库固定 `@deepseek-ai/dsh@0.2.0-rc.2`（见 [维护者笔记里的基线说明](internal/runtime-baseline.md)） |
+| dsh | 版本要覆盖插件声明的宿主基线，本仓库固定 `@deepseek-ai/dsh@0.2.1-rc.2`（见 [维护者笔记里的基线说明](internal/runtime-baseline.md)） |
 | 模型 | 任意一个 dsh 能调用的模型：DeepSeek、OpenAI 兼容网关、公司内部网关都可以，只要能在 dsh 里跑通一次对话 |
 | 网页搜索 | 主题路线需要。dsh 自带 DeepSeek 搜索，配 `DEEPSEEK_API_KEY` 即可；项目空间只用本地材料，不需要搜索 |
 
@@ -43,7 +43,7 @@ profile 是 dsh 的插件集合。**直接装进 `web` 就行**——dsh 会自�
 
 ```sh
 dsh plugin --profile web add "link:$PWD/packages/learny"   # 源码目录
-# 或者：dsh plugin --profile web add ./artifacts/dsh-plugin-learny-0.1.4.tgz
+# 或者：dsh plugin --profile web add ./artifacts/dsh-plugin-learny-0.1.5.tgz
 # 发布到 npm 之后：dsh plugin --profile web add dsh-plugin-learny
 ```
 
@@ -187,7 +187,20 @@ pnpm build
 
 笔记正文与章节位置、来源和复习状态一起保存在 Markdown 文件中，旧笔记默认归入「空间笔记」。未保存的速记、编辑和提问草稿保留在当前浏览器；笔记保存成功后以本机文件为准。整理或向 dsh 提问时，会把相关笔记内容交给你配置的模型。
 
-## 10. 常见问题
+## 10. 宿主兼容性
+
+Learny `0.1.5` 的宿主基线是 `dsh@0.2.1-rc.2`。`0.1.4` 的宿主依赖锁在 `0.2.0-rc.2`，在新版 dsh 上会被安装器拒绝。请更新源码、重新安装依赖、构建，再安装新的源码目录或 `0.1.5` 包；不要用 `allow-version --accept-risk` 绕过检查，也不要继续使用旧 tgz。
+
+```sh
+git pull --ff-only
+pnpm install --frozen-lockfile
+pnpm build
+dsh plugin --profile web add "link:$PWD/packages/learny"
+```
+
+退出并重新启动 `dsh web`。插件版本、宿主依赖、锁文件与构建产物必须一致。当前不宣称兼容未经验证的其他 dsh 版本。
+
+## 11. 常见问题
 
 | 现象 | 原因与处理 |
 |---|---|

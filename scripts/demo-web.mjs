@@ -5,6 +5,10 @@ import { join } from 'node:path'
 
 const root = fileURLToPath(new URL('..', import.meta.url))
 const cli = join(root, 'node_modules/.bin/dsh')
+const archive = directory => {
+  const { name, version } = JSON.parse(readFileSync(join(root, 'packages', directory, 'package.json'), 'utf8'))
+  return join(root, 'artifacts', `${name}-${version}.tgz`)
+}
 function readDotEnv(path) {
   if (!existsSync(path)) return {}
   const values = {}
@@ -25,8 +29,8 @@ mkdirSync(join(root, 'artifacts'), { recursive: true })
 if (process.argv[2] === 'install') {
   for (const args of [
     ...existsSync(join(env.DSH_HOME, 'profiles', profile, 'package.json')) ? [] : [['--profile', profile, '--from-default-profile', 'web', '--dump-config']],
-    ['plugin', '--profile', profile, 'add', join(root, 'artifacts/dsh-plugin-learny-0.1.4.tgz')],
-    ['plugin', '--profile', profile, 'add', join(root, 'artifacts/dsh-web-search-oneapi-0.1.2.tgz')],
+    ['plugin', '--profile', profile, 'add', archive('learny')],
+    ['plugin', '--profile', profile, 'add', archive('web-search-oneapi')],
   ]) {
     const result = spawnSync(cli, args, { cwd: root, env, stdio: args.includes('--dump-config') ? ['inherit', 'ignore', 'inherit'] : 'inherit' })
     if (result.error) throw result.error
